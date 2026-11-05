@@ -27,7 +27,8 @@ const TEXT_COLOR := Color("#ead9bd")
 
 func _ready() -> void:
     randomize()
-    GameManager.reset_new_game()
+    if not GameManager.load_game():
+        GameManager.reset_new_game()
     _create_world()
     _create_player()
     _create_hud()
@@ -253,6 +254,13 @@ void fragment() {
     save_button.pressed.connect(_save_game)
     hud.add_child(save_button)
 
+    var load_button := Button.new()
+    load_button.text = "CARREGAR"
+    load_button.position = Vector2(1160,68)
+    load_button.custom_minimum_size = Vector2(100,38)
+    load_button.pressed.connect(_load_game)
+    hud.add_child(load_button)
+
     var inventory_button := Button.new()
     inventory_button.text = "MOCHILA (I)"
     inventory_button.position = Vector2(1050,575)
@@ -388,6 +396,13 @@ func _refresh_hud() -> void:
 func _save_game() -> void:
     GameManager.save_game()
     _show_message("Progresso salvo!")
+
+func _load_game() -> void:
+    if GameManager.load_game():
+        _show_message("Progresso carregado!")
+        _refresh_hud()
+    else:
+        _show_message("Ainda não existe um salvamento.")
 
 func _show_message(text_value: String) -> void:
     if message_label:
