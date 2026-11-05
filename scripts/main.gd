@@ -264,8 +264,8 @@ void fragment() {
 
 func _create_inventory_panel(hud: CanvasLayer) -> void:
     inventory_panel = PanelContainer.new()
-    inventory_panel.position = Vector2(365, 125)
-    inventory_panel.custom_minimum_size = Vector2(550, 470)
+    inventory_panel.position = Vector2(365, 90)
+    inventory_panel.custom_minimum_size = Vector2(550, 540)
     inventory_panel.visible = false
     var style := StyleBoxFlat.new()
     style.bg_color = Color("#17130f")
@@ -297,7 +297,7 @@ func _create_inventory_panel(hud: CanvasLayer) -> void:
     grid.add_theme_constant_override("v_separation", 7)
     for i in range(GameManager.INVENTORY_CAPACITY):
         var slot := Button.new()
-        slot.custom_minimum_size = Vector2(88, 62)
+        slot.custom_minimum_size = Vector2(88, 55)
         slot.text = "Vazio"
         slot.focus_mode = Control.FOCUS_NONE
         grid.add_child(slot)
