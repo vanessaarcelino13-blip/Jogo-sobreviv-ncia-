@@ -1,0 +1,29 @@
+; Engine configuration file.
+config_version=5
+
+[application]
+config/name="Jogo Sobrevivência"
+run/main_scene="res://scenes/main.tscn"
+config/features=PackedStringArray("4.2", "GL Compatibility")
+
+[display]
+window/size/viewport_width=1280
+window/size/viewport_height=720
+window/size/window_width_override=1280
+window/size/window_height_override=720
+window/stretch/mode="canvas_items"
+
+[rendering]
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
+environment/defaults/default_clear_color=Color(0.08, 0.12, 0.10, 1)
+
+[autoload]
+GameManager="*res://scripts/game_manager.gd"
+
+[input]
+move_left={"deadzone":0.2,"events":[Object(InputEventKey,"physical_keycode":65)]}
+move_right={"deadzone":0.2,"events":[Object(InputEventKey,"physical_keycode":68)]}
+move_up={"deadzone":0.2,"events":[Object(InputEventKey,"physical_keycode":87)]}
+move_down={"deadzone":0.2,"events":[Object(InputEventKey,"physical_keycode":83)]}
+interact={"deadzone":0.2,"events":[Object(InputEventKey,"physical_keycode":69)]}
