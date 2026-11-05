@@ -11,8 +11,10 @@ func _ready() -> void:
 func collect() -> void:
     if not available:
         return
+    var harvest_amount := GameManager.get_harvest_amount(resource_type, amount)
+    if not GameManager.add_resource(resource_type, harvest_amount):
+        return
     available = false
-    GameManager.add_resource(resource_type, amount)
     queue_redraw()
 
 func _draw() -> void:
