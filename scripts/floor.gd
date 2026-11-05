@@ -2,7 +2,7 @@ extends StaticBody2D
 
 func _ready() -> void:
     add_to_group("floors")
-    z_index = -1
+    z_index = 4
     queue_redraw()
 
 func _draw() -> void:
