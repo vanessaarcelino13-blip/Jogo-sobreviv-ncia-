@@ -44,13 +44,21 @@ func _create_world() -> void:
         pebble.color = Color("496449") if i % 2 == 0 else Color("3c5a43")
         add_child(pebble)
 
+    # Tufos e manchas de grama criam variação visual sem arquivos externos.
+    for i in range(260):
+        var grass := Polygon2D.new()
+        var x := randf_range(-2.0, 2.0)
+        grass.polygon = PackedVector2Array([
+            Vector2(-1.5, 2.0), Vector2(x, -3.0), Vector2(2.0, 2.0)
+        ])
+        grass.position = Vector2(randf_range(-1150, 1150), randf_range(-900, 900))
+        grass.color = [Color("58734a"), Color("668052"), Color("405f3d")][i % 3]
+        grass.z_index = 1
+        add_child(grass)
+
 func _create_player() -> void:
     player = PLAYER_SCENE.instantiate()
     add_child(player)
-    var camera := Camera2D.new()
-    camera.position_smoothing_enabled = true
-    camera.position_smoothing_speed = 5.0
-    player.add_child(camera)
 
 func _spawn_resources() -> void:
     randomize()
