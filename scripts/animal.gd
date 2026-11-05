@@ -20,14 +20,20 @@ func _physics_process(delta: float) -> void:
     if flee_timer > 0.0:
         flee_timer -= delta
         velocity = flee_direction * move_speed * 2.3
-    elif is_instance_valid(target) and global_position.distance_to(target.global_position) < 270.0:
-        velocity = global_position.direction_to(target.global_position) * move_speed * 0.55
     else:
-        wander_timer -= delta
-        if wander_timer <= 0.0:
-            wander_timer = randf_range(1.2, 3.0)
-            wander_direction = Vector2.RIGHT.rotated(randf_range(-PI, PI))
-        velocity = wander_direction * move_speed * 0.25
+        var detection_range := 270.0
+        if WeatherManager.current_weather == "tempestade":
+            detection_range *= 0.5
+        elif WeatherManager.current_weather == "nevoa":
+            detection_range *= 0.7
+        if is_instance_valid(target) and global_position.distance_to(target.global_position) < detection_range:
+            velocity = global_position.direction_to(target.global_position) * move_speed * 0.55
+        else:
+            wander_timer -= delta
+            if wander_timer <= 0.0:
+                wander_timer = randf_range(1.2, 3.0)
+                wander_direction = Vector2.RIGHT.rotated(randf_range(-PI, PI))
+            velocity = wander_direction * move_speed * 0.25
     move_and_slide()
 
 func scare_away(from_position: Vector2) -> void:
