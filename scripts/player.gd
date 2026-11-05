@@ -8,6 +8,7 @@ var pulse_timer := 0.0
 var pulse_visual := 0.0
 
 func _ready() -> void:
+    add_to_group("player")
     motion_mode = CharacterBody2D.MOTION_MODE_FLOATING
     queue_redraw()
 
