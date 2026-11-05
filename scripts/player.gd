@@ -18,7 +18,10 @@ func _physics_process(delta: float) -> void:
     var direction := Input.get_vector("move_left", "move_right", "move_up", "move_down")
     if direction.length() > 0.05:
         facing = direction.normalized()
-    velocity = direction * speed
+    var weather_factor := 1.0
+    if WeatherManager.current_weather == "chuva" or WeatherManager.current_weather == "tempestade":
+        weather_factor = 0.9
+    velocity = direction * speed * weather_factor
     move_and_slide()
     queue_redraw()
 
