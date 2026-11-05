@@ -1,6 +1,12 @@
 extends Node
 
 signal stats_changed
+
+const INVENTORY_CAPACITY := 20
+const STACK_LIMIT := 20
+const TOOL_STONE := "stone_axe"
+const TOOL_METAL := "metal_axe"
+
 var health: float = 100.0
 var hunger: float = 100.0
 var thirst: float = 100.0
@@ -8,23 +14,125 @@ var wood: int = 0
 var stone: int = 0
 var day: int = 1
 var elapsed: float = 0.0
+var inventory: Array[Dictionary] = []
+var equipped_tool: String = TOOL_STONE
+
+func _ready() -> void:
+    _reset_inventory()
+
+func _reset_inventory() -> void:
+    inventory.clear()
+    for i in range(INVENTORY_CAPACITY):
+        inventory.append({})
+    wood = 0
+    stone = 0
 
 func reset_new_game() -> void:
     health = 100.0
     hunger = 100.0
     thirst = 100.0
-    wood = 0
-    stone = 0
     day = 1
     elapsed = 0.0
+    equipped_tool = TOOL_STONE
+    _reset_inventory()
+    add_item(TOOL_STONE, 1)
     stats_changed.emit()
 
-func add_resource(kind: String, amount: int) -> void:
-    if kind == "wood":
-        wood += amount
-    elif kind == "stone":
-        stone += amount
+func _count_item(item_id: String) -> int:
+    var total := 0
+    for slot in inventory:
+        if slot.get("id", "") == item_id:
+            total += int(slot.get("count", 0))
+    return total
+
+func _sync_resource_totals() -> void:
+    wood = _count_item("wood")
+    stone = _count_item("stone")
+
+func add_item(item_id: String, amount: int) -> bool:
+    if amount <= 0:
+        return true
+    var free_capacity := 0
+    for slot in inventory:
+        if slot.is_empty():
+            free_capacity += STACK_LIMIT
+        elif slot.get("id", "") == item_id:
+            free_capacity += STACK_LIMIT - int(slot.get("count", 0))
+    if free_capacity < amount:
+        return false
+    var remaining := amount
+    for i in range(inventory.size()):
+        if inventory[i].get("id", "") == item_id and int(inventory[i].get("count", 0)) < STACK_LIMIT:
+            var room := STACK_LIMIT - int(inventory[i]["count"])
+            var added := mini(room, remaining)
+            inventory[i]["count"] = int(inventory[i]["count"]) + added
+            remaining -= added
+            if remaining <= 0:
+                break
+    for i in range(inventory.size()):
+        if remaining <= 0:
+            break
+        if inventory[i].is_empty():
+            var added := mini(STACK_LIMIT, remaining)
+            inventory[i] = {"id": item_id, "count": added}
+            remaining -= added
+    _sync_resource_totals()
     stats_changed.emit()
+    return true
+
+func add_resource(kind: String, amount: int) -> bool:
+    return add_item(kind, amount)
+
+func get_inventory_slot(index: int) -> Dictionary:
+    if index < 0 or index >= inventory.size():
+        return {}
+    return inventory[index].duplicate()
+
+func get_item_count(item_id: String) -> int:
+    return _count_item(item_id)
+
+func get_item_name(item_id: String) -> String:
+    match item_id:
+        "wood": return "Madeira"
+        "stone": return "Pedra"
+        "stone_axe": return "Machado de pedra"
+        "metal_axe": return "Machado de metal"
+        _: return item_id
+
+func get_harvest_amount(resource_type: String, base_amount: int) -> int:
+    if resource_type == "wood":
+        return 5 if equipped_tool == TOOL_METAL else 1
+    return base_amount
+
+func craft_metal_axe() -> bool:
+    if get_item_count(TOOL_METAL) > 0:
+        return false
+    if get_item_count("wood") < 5 or get_item_count("stone") < 8:
+        return false
+    _remove_item("wood", 5)
+    _remove_item("stone", 8)
+    if not add_item(TOOL_METAL, 1):
+        return false
+    equipped_tool = TOOL_METAL
+    stats_changed.emit()
+    return true
+
+func _remove_item(item_id: String, amount: int) -> bool:
+    if _count_item(item_id) < amount:
+        return false
+    var remaining := amount
+    for i in range(inventory.size()):
+        if inventory[i].get("id", "") != item_id:
+            continue
+        var take := mini(int(inventory[i]["count"]), remaining)
+        inventory[i]["count"] = int(inventory[i]["count"]) - take
+        remaining -= take
+        if int(inventory[i]["count"]) <= 0:
+            inventory[i] = {}
+        if remaining <= 0:
+            break
+    _sync_resource_totals()
+    return true
 
 func consume_survival(delta: float) -> void:
     elapsed += delta
@@ -38,7 +146,11 @@ func consume_survival(delta: float) -> void:
     stats_changed.emit()
 
 func save_game() -> void:
-    var data := {"health": health, "hunger": hunger, "thirst": thirst, "wood": wood, "stone": stone, "day": day, "elapsed": elapsed}
+    var data := {
+        "health": health, "hunger": hunger, "thirst": thirst,
+        "wood": wood, "stone": stone, "day": day, "elapsed": elapsed,
+        "inventory": inventory, "equipped_tool": equipped_tool
+    }
     var file := FileAccess.open("user://survival_save.json", FileAccess.WRITE)
     if file:
         file.store_string(JSON.stringify(data))
@@ -55,10 +167,20 @@ func load_game() -> bool:
     health = float(parsed.get("health", 100.0))
     hunger = float(parsed.get("hunger", 100.0))
     thirst = float(parsed.get("thirst", 100.0))
-    wood = int(parsed.get("wood", 0))
-    stone = int(parsed.get("stone", 0))
     day = int(parsed.get("day", 1))
     elapsed = float(parsed.get("elapsed", 0.0))
+    equipped_tool = str(parsed.get("equipped_tool", TOOL_STONE))
+    _reset_inventory()
+    var saved_inventory = parsed.get("inventory", [])
+    if saved_inventory is Array and not saved_inventory.is_empty():
+        for i in range(mini(saved_inventory.size(), INVENTORY_CAPACITY)):
+            if saved_inventory[i] is Dictionary:
+                inventory[i] = saved_inventory[i].duplicate()
+    else:
+        add_item("stone_axe", 1)
+        add_item("wood", int(parsed.get("wood", 0)))
+        add_item("stone", int(parsed.get("stone", 0)))
+    _sync_resource_totals()
     stats_changed.emit()
     return true
 
