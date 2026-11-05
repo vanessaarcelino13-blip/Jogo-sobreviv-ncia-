@@ -2,6 +2,16 @@ extends Node
 
 signal stats_changed
 signal player_died
+signal season_changed(new_season: String)
+
+const DAYS_PER_SEASON := 3
+const SEASON_ORDER := ["primavera", "verao", "outono", "inverno"]
+const SEASON_DATA := {
+    "primavera": {"thirst_mult": 1.0, "temp": "ameno"},
+    "verao": {"thirst_mult": 2.0, "temp": "quente"},
+    "outono": {"thirst_mult": 1.0, "temp": "ameno"},
+    "inverno": {"thirst_mult": 0.8, "temp": "frio"}
+}
 
 var death_reported := false
 
@@ -18,6 +28,7 @@ var thirst: float = 100.0
 var wood: int = 0
 var stone: int = 0
 var day: int = 1
+var current_season: String = "primavera"
 var elapsed: float = 0.0
 var inventory: Array[Dictionary] = []
 var equipped_tool: String = TOOL_STONE
@@ -40,6 +51,7 @@ func reset_new_game() -> void:
     hunger = 100.0
     thirst = 100.0
     day = 1
+    current_season = "primavera"
     elapsed = 0.0
     equipped_tool = TOOL_STONE
     equipped_armor = ""
@@ -253,10 +265,27 @@ func _remove_item(item_id: String, amount: int) -> bool:
     _sync_resource_totals()
     return true
 
+func get_season_thirst_multiplier() -> float:
+    return float(SEASON_DATA.get(current_season, SEASON_DATA["primavera"]).get("thirst_mult", 1.0))
+
+func get_season_temperature() -> String:
+    return str(SEASON_DATA.get(current_season, SEASON_DATA["primavera"]).get("temp", "ameno"))
+
+func _check_season_change() -> void:
+    if day % DAYS_PER_SEASON != 0:
+        return
+    var current_index := SEASON_ORDER.find(current_season)
+    if current_index < 0:
+        current_index = 0
+    current_season = SEASON_ORDER[(current_index + 1) % SEASON_ORDER.size()]
+    season_changed.emit(current_season)
+    print("[Estação] Mudou para: ", current_season)
+
 func consume_survival(delta: float) -> void:
     elapsed += delta
     hunger = maxf(0.0, hunger - delta * 0.22)
-    thirst = maxf(0.0, thirst - delta * 0.34)
+    var thirst_mult := get_season_thirst_multiplier()
+    thirst = maxf(0.0, thirst - delta * 0.34 * thirst_mult)
     if hunger <= 0.0 or thirst <= 0.0:
         health = maxf(0.0, health - delta * 1.8)
     if health <= 0.0 and not death_reported:
@@ -265,12 +294,14 @@ func consume_survival(delta: float) -> void:
     if elapsed >= 180.0:
         elapsed = 0.0
         day += 1
+        _check_season_change()
     stats_changed.emit()
 
 func save_game() -> void:
     var data := {
         "health": health, "hunger": hunger, "thirst": thirst,
         "wood": wood, "stone": stone, "day": day, "elapsed": elapsed,
+        "current_season": current_season,
         "inventory": inventory, "equipped_tool": equipped_tool,
         "storage": StorageManager.chests_data,
         "equipped_armor": equipped_armor,
@@ -293,6 +324,9 @@ func load_game() -> bool:
     hunger = float(parsed.get("hunger", 100.0))
     thirst = float(parsed.get("thirst", 100.0))
     day = int(parsed.get("day", 1))
+    current_season = str(parsed.get("current_season", "primavera"))
+    if current_season not in SEASON_ORDER:
+        current_season = "primavera"
     elapsed = float(parsed.get("elapsed", 0.0))
     equipped_tool = str(parsed.get("equipped_tool", TOOL_STONE))
     equipped_armor = str(parsed.get("equipped_armor", ""))
