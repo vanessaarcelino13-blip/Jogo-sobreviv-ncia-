@@ -9,6 +9,7 @@ var wander_timer := 0.0
 
 func _ready() -> void:
     add_to_group("wildlife")
+    z_index = 5
     queue_redraw()
     wander_direction = Vector2.RIGHT.rotated(randf_range(-PI, PI))
 
