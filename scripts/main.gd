@@ -13,6 +13,7 @@ var status_label: Label
 var resource_label: Label
 var message_label: Label
 var time_label: Label
+var season_label: Label
 var biome_label: Label
 var weather_overlay: ColorRect
 var airdrop_timer: Timer
@@ -47,6 +48,8 @@ func _ready() -> void:
     _spawn_resources()
     _spawn_animals()
     GameManager.stats_changed.connect(_refresh_hud)
+    GameManager.season_changed.connect(_on_season_changed)
+    _on_season_changed(GameManager.current_season)
     GameManager.player_died.connect(_on_player_death)
     WeatherManager.weather_changed.connect(_on_weather_changed)
     airdrop_timer = Timer.new()
@@ -240,6 +243,10 @@ void fragment() {
     time_label = _make_label("DIA 01  •  DIA", 18)
     time_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
     phase_panel.add_child(time_label)
+    var season_panel := _make_panel(hud, Vector2(530,76), Vector2(220,42))
+    season_label = _make_label("🌸 PRIMAVERA", 16, Color("#9bd28a"))
+    season_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+    season_panel.add_child(season_label)
     var biome_panel := _make_panel(hud, Vector2(770,18), Vector2(220,48))
     biome_label = _make_label("BIOMA: FLORESTA", 15, Color("#c6d69a"))
     biome_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -402,6 +409,24 @@ func _create_inventory_panel(hud: CanvasLayer) -> void:
     equip_hat_button.pressed.connect(_equip_armor.bind("sun_hat"))
     content.add_child(equip_hat_button)
     content.add_child(_make_label("Machados/picaretas melhoram a coleta. Casaco protege na neve; chapéu protege no deserto.", 11, Color("#c69a61")))
+
+func _on_season_changed(season: String) -> void:
+    if not season_label:
+        return
+    match season:
+        "primavera":
+            season_label.text = "🌸 PRIMAVERA"
+            season_label.add_theme_color_override("font_color", Color(0.6, 1.0, 0.6))
+        "verao":
+            season_label.text = "☀ VERÃO"
+            season_label.add_theme_color_override("font_color", Color(1.0, 0.8, 0.4))
+        "outono":
+            season_label.text = "🍂 OUTONO"
+            season_label.add_theme_color_override("font_color", Color(0.8, 0.6, 0.4))
+        "inverno":
+            season_label.text = "❄ INVERNO"
+            season_label.add_theme_color_override("font_color", Color(0.6, 0.8, 1.0))
+    _show_message("A estação mudou: " + season.to_upper() + "!")
 
 func _on_weather_changed(weather: String) -> void:
     var messages := {
