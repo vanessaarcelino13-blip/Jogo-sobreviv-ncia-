@@ -33,6 +33,10 @@ func use_pulse() -> void:
         return
     pulse_timer = pulse_cooldown
     pulse_visual = 0.28
+    GameManager.hit_stop(0.04)
+    var camera := get_node_or_null("Camera2D")
+    if camera and camera.has_method("shake"):
+        camera.shake(0.16, 3.0)
     for animal in get_tree().get_nodes_in_group("wildlife"):
         if is_instance_valid(animal) and global_position.distance_to(animal.global_position) <= pulse_radius:
             if animal.has_method("scare_away"):
