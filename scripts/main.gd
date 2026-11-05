@@ -13,6 +13,9 @@ var resource_label: Label
 var message_label: Label
 var time_label: Label
 var day_night_overlay: ColorRect
+var damage_flash: ColorRect
+var vignette_material: ShaderMaterial
+var last_health := 100.0
 var message_timer := 0.0
 
 const PANEL_COLOR := Color("#1a1512")
@@ -43,6 +46,7 @@ func _process(delta: float) -> void:
         day_night_overlay.color = Color(0.04, 0.07, 0.16, darkness)
     if time_label:
         time_label.text = "DIA %02d   •   %s" % [GameManager.day, "NOITE" if darkness > 0.12 else "DIA"]
+    _update_low_health_vignette()
 
 func _create_world() -> void:
     var ground := Polygon2D.new()
@@ -169,6 +173,7 @@ void fragment() {
     var vignette_material := ShaderMaterial.new()
     vignette_material.shader = vignette_shader
     vignette.material = vignette_material
+    self.vignette_material = vignette_material
     hud.add_child(vignette)
 
     # Escurecimento dinâmico de noite.
@@ -177,6 +182,12 @@ void fragment() {
     day_night_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
     day_night_overlay.color = Color(0.04, 0.07, 0.16, 0.0)
     hud.add_child(day_night_overlay)
+
+    damage_flash = ColorRect.new()
+    damage_flash.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+    damage_flash.mouse_filter = Control.MOUSE_FILTER_IGNORE
+    damage_flash.color = Color(0.8, 0.0, 0.0, 0.0)
+    hud.add_child(damage_flash)
 
     var resources_panel := _make_panel(hud, Vector2(18,18), Vector2(270,72))
     var resources_box := VBoxContainer.new()
@@ -248,6 +259,9 @@ func _use_player_pulse() -> void:
         _show_message("Pulso ativado: os animais se afastaram!")
 
 func _refresh_hud() -> void:
+    if GameManager.health < last_health:
+        _play_damage_feedback()
+    last_health = GameManager.health
     if health_bar:
         health_bar.value = GameManager.health
         hunger_bar.value = GameManager.hunger
@@ -263,3 +277,22 @@ func _show_message(text_value: String) -> void:
     if message_label:
         message_label.text = text_value
         message_timer = 2.5
+
+func _play_damage_feedback() -> void:
+    if damage_flash:
+        damage_flash.color = Color(0.8, 0.0, 0.0, 0.28)
+        var flash_tween := create_tween()
+        flash_tween.tween_property(damage_flash, "color:a", 0.0, 0.48)
+    if is_instance_valid(player):
+        var camera := player.get_node_or_null("Camera2D")
+        if camera and camera.has_method("shake"):
+            camera.shake(0.22, 5.0)
+
+func _update_low_health_vignette() -> void:
+    if not vignette_material:
+        return
+    var health_ratio := clampf(GameManager.health / 100.0, 0.0, 1.0)
+    var extra_dark := 0.0
+    if health_ratio < 0.30:
+        extra_dark = (0.30 - health_ratio) / 0.30
+    vignette_material.set_shader_parameter("cor_borda", Color(0.0, 0.0, 0.0, 0.48 + extra_dark * 0.32))
