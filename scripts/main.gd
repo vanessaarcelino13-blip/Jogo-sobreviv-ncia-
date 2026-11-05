@@ -15,6 +15,9 @@ var time_label: Label
 var day_night_overlay: ColorRect
 var damage_flash: ColorRect
 var vignette_material: ShaderMaterial
+var inventory_panel: PanelContainer
+var inventory_slots: Array[Button] = []
+var inventory_status: Label
 var last_health := 100.0
 var message_timer := 0.0
 
@@ -32,6 +35,10 @@ func _ready() -> void:
     _spawn_animals()
     GameManager.stats_changed.connect(_refresh_hud)
     _refresh_hud()
+
+func _unhandled_input(event: InputEvent) -> void:
+    if event.is_action_pressed("open_inventory"):
+        _toggle_inventory()
 
 func _process(delta: float) -> void:
     GameManager.consume_survival(delta)
@@ -53,8 +60,6 @@ func _create_world() -> void:
     ground.polygon = PackedVector2Array([Vector2(-1800,-1200), Vector2(1800,-1200), Vector2(1800,1200), Vector2(-1800,1200)])
     ground.color = Color("#354632")
     add_child(ground)
-
-    # Camadas de manchas de terra e vegetação criadas no próprio Godot.
     for i in range(170):
         var dirt := Polygon2D.new()
         var w := randf_range(18.0, 55.0)
@@ -64,7 +69,6 @@ func _create_world() -> void:
         dirt.color = [Color("#514a35"), Color("#454331"), Color("#5b5038")][i % 3]
         dirt.z_index = 1
         add_child(dirt)
-
     for i in range(1500):
         var grass := Polygon2D.new()
         var x := randf_range(-3.0, 3.0)
@@ -73,7 +77,6 @@ func _create_world() -> void:
         grass.color = [Color("#60734a"), Color("#718052"), Color("#465b3b"), Color("#84905a")][i % 4]
         grass.z_index = 2
         add_child(grass)
-
     for i in range(180):
         var pebble := Polygon2D.new()
         pebble.polygon = PackedVector2Array([Vector2(-3,-1), Vector2(3,-2), Vector2(6,2), Vector2(-2,4)])
@@ -153,8 +156,6 @@ func _create_hud() -> void:
     var hud := CanvasLayer.new()
     hud.layer = 10
     add_child(hud)
-
-    # Vinheta suave nas bordas da tela.
     var vignette := ColorRect.new()
     vignette.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
     vignette.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -170,13 +171,12 @@ void fragment() {
     COLOR = vec4(cor_borda.rgb, alpha);
 }
 """
-    var vignette_material := ShaderMaterial.new()
-    vignette_material.shader = vignette_shader
-    vignette.material = vignette_material
-    self.vignette_material = vignette_material
+    var vignette_mat := ShaderMaterial.new()
+    vignette_mat.shader = vignette_shader
+    vignette.material = vignette_mat
+    vignette_material = vignette_mat
     hud.add_child(vignette)
 
-    # Escurecimento dinâmico de noite.
     day_night_overlay = ColorRect.new()
     day_night_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
     day_night_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -192,7 +192,7 @@ void fragment() {
     var resources_panel := _make_panel(hud, Vector2(18,18), Vector2(270,72))
     var resources_box := VBoxContainer.new()
     resources_box.add_child(_make_label("MOCHILA  /  RECURSOS", 13, Color("#c69a61")))
-    resource_label = _make_label("▰ Madeira: 0     ◆ Pedra: 0", 16)
+    resource_label = _make_label("Madeira: 0     Pedra: 0", 16)
     resources_box.add_child(resource_label)
     resources_panel.add_child(resources_box)
 
@@ -231,7 +231,7 @@ void fragment() {
     equipment_panel.add_child(equipment_box)
 
     var help_panel := _make_panel(hud, Vector2(330,650), Vector2(420,42))
-    help_panel.add_child(_make_label("WASD: mover   •   E: coletar   •   Q: defesa", 13))
+    help_panel.add_child(_make_label("WASD: mover   •   E: coletar   •   Q: defesa   •   I: mochila", 12))
 
     message_label = _make_label("", 18, Color("#f2d8a8"))
     message_label.position = Vector2(390,590)
@@ -253,6 +253,93 @@ void fragment() {
     save_button.pressed.connect(_save_game)
     hud.add_child(save_button)
 
+    var inventory_button := Button.new()
+    inventory_button.text = "MOCHILA (I)"
+    inventory_button.position = Vector2(1050,575)
+    inventory_button.custom_minimum_size = Vector2(190,42)
+    inventory_button.pressed.connect(_toggle_inventory)
+    hud.add_child(inventory_button)
+
+    _create_inventory_panel(hud)
+
+func _create_inventory_panel(hud: CanvasLayer) -> void:
+    inventory_panel = PanelContainer.new()
+    inventory_panel.position = Vector2(365, 125)
+    inventory_panel.custom_minimum_size = Vector2(550, 470)
+    inventory_panel.visible = false
+    var style := StyleBoxFlat.new()
+    style.bg_color = Color("#17130f")
+    style.border_color = Color("#b17a3e")
+    style.set_border_width_all(3)
+    style.set_corner_radius_all(8)
+    style.content_margin_left = 16
+    style.content_margin_right = 16
+    style.content_margin_top = 14
+    style.content_margin_bottom = 14
+    inventory_panel.add_theme_stylebox_override("panel", style)
+    hud.add_child(inventory_panel)
+
+    var content := VBoxContainer.new()
+    content.add_theme_constant_override("separation", 10)
+    inventory_panel.add_child(content)
+    var header := HBoxContainer.new()
+    header.add_child(_make_label("MOCHILA  •  20 ESPAÇOS", 20, Color("#d5a15d")))
+    var close_button := Button.new()
+    close_button.text = "FECHAR"
+    close_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+    close_button.pressed.connect(_toggle_inventory)
+    header.add_child(close_button)
+    content.add_child(header)
+
+    var grid := GridContainer.new()
+    grid.columns = 5
+    grid.add_theme_constant_override("h_separation", 7)
+    grid.add_theme_constant_override("v_separation", 7)
+    for i in range(GameManager.INVENTORY_CAPACITY):
+        var slot := Button.new()
+        slot.custom_minimum_size = Vector2(88, 62)
+        slot.text = "Vazio"
+        slot.focus_mode = Control.FOCUS_NONE
+        grid.add_child(slot)
+        inventory_slots.append(slot)
+    content.add_child(grid)
+
+    inventory_status = _make_label("Ferramenta equipada: Machado de pedra", 14)
+    content.add_child(inventory_status)
+    var craft_button := Button.new()
+    craft_button.text = "FABRICAR MACHADO DE METAL  •  5 MADEIRAS + 8 PEDRAS"
+    craft_button.custom_minimum_size = Vector2(0, 42)
+    craft_button.pressed.connect(_craft_metal_axe)
+    content.add_child(craft_button)
+    content.add_child(_make_label("Cada machado de metal coleta 5 madeiras por árvore.", 12, Color("#c69a61")))
+
+func _toggle_inventory() -> void:
+    if inventory_panel:
+        inventory_panel.visible = not inventory_panel.visible
+        if inventory_panel.visible:
+            _refresh_inventory_ui()
+
+func _refresh_inventory_ui() -> void:
+    if not inventory_panel:
+        return
+    for i in range(inventory_slots.size()):
+        var slot_data := GameManager.get_inventory_slot(i)
+        if slot_data.is_empty():
+            inventory_slots[i].text = "Vazio"
+        else:
+            var item_id := str(slot_data.get("id", ""))
+            inventory_slots[i].text = "%s\n×%d" % [GameManager.get_item_name(item_id), int(slot_data.get("count", 0))]
+    if inventory_status:
+        inventory_status.text = "Ferramenta equipada: %s" % GameManager.get_item_name(GameManager.equipped_tool)
+
+func _craft_metal_axe() -> void:
+    if GameManager.craft_metal_axe():
+        _show_message("Machado de metal fabricado e equipado!")
+    else:
+        _show_message("Precisa de 5 madeiras e 8 pedras, e espaço na mochila.")
+    _refresh_inventory_ui()
+    _refresh_hud()
+
 func _use_player_pulse() -> void:
     if is_instance_valid(player) and player.has_method("use_pulse"):
         player.use_pulse()
@@ -267,7 +354,8 @@ func _refresh_hud() -> void:
         hunger_bar.value = GameManager.hunger
         thirst_bar.value = GameManager.thirst
     if resource_label:
-        resource_label.text = "▰ Madeira: %d     ◆ Pedra: %d" % [GameManager.wood, GameManager.stone]
+        resource_label.text = "Madeira: %d     Pedra: %d" % [GameManager.wood, GameManager.stone]
+    _refresh_inventory_ui()
 
 func _save_game() -> void:
     GameManager.save_game()
