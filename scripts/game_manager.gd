@@ -118,6 +118,7 @@ func clear_inventory() -> Dictionary:
     var dropped := get_inventory_contents()
     _reset_inventory()
     equipped_tool = ""
+    equipped_armor = ""
     stats_changed.emit()
     return dropped
 
