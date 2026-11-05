@@ -18,13 +18,22 @@ func _process(delta: float) -> void:
 
 func _change_weather() -> void:
     var roll := randf()
-    if roll < 0.42:
-        current_weather = "limpo"
-    elif roll < 0.70:
-        current_weather = "chuva"
-    elif roll < 0.88:
-        current_weather = "tempestade"
+    var season := GameManager.current_season
+    if season == "inverno":
+        if roll < 0.30:
+            current_weather = "limpo"
+        elif roll < 0.70:
+            current_weather = "chuva"
+        else:
+            current_weather = "tempestade"
+    elif season == "verao":
+        current_weather = "limpo" if roll < 0.80 else "chuva"
     else:
-        current_weather = "nevoa"
+        if roll < 0.50:
+            current_weather = "limpo"
+        elif roll < 0.80:
+            current_weather = "chuva"
+        else:
+            current_weather = "tempestade"
     weather_changed.emit(current_weather)
-    print("[Clima] ", current_weather)
+    print("[Clima] ", current_weather, " | Estação: ", season)
