@@ -22,6 +22,7 @@ var elapsed: float = 0.0
 var inventory: Array[Dictionary] = []
 var equipped_tool: String = TOOL_STONE
 var equipped_armor: String = ""
+var built_floors: Array[Dictionary] = []
 
 func _ready() -> void:
     _reset_inventory()
@@ -42,6 +43,7 @@ func reset_new_game() -> void:
     elapsed = 0.0
     equipped_tool = TOOL_STONE
     equipped_armor = ""
+    built_floors.clear()
     _reset_inventory()
     add_item(TOOL_STONE, 1)
     stats_changed.emit()
@@ -271,7 +273,8 @@ func save_game() -> void:
         "wood": wood, "stone": stone, "day": day, "elapsed": elapsed,
         "inventory": inventory, "equipped_tool": equipped_tool,
         "storage": StorageManager.chests_data,
-        "equipped_armor": equipped_armor
+        "equipped_armor": equipped_armor,
+        "built_floors": built_floors
     }
     var file := FileAccess.open("user://survival_save.json", FileAccess.WRITE)
     if file:
@@ -293,6 +296,12 @@ func load_game() -> bool:
     elapsed = float(parsed.get("elapsed", 0.0))
     equipped_tool = str(parsed.get("equipped_tool", TOOL_STONE))
     equipped_armor = str(parsed.get("equipped_armor", ""))
+    built_floors.clear()
+    var saved_floors = parsed.get("built_floors", [])
+    if saved_floors is Array:
+        for saved_floor in saved_floors:
+            if saved_floor is Dictionary:
+                built_floors.append(saved_floor.duplicate())
     StorageManager.chests_data = parsed.get("storage", {}) as Dictionary
     _reset_inventory()
     var saved_inventory = parsed.get("inventory", [])
