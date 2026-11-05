@@ -312,11 +312,25 @@ void fragment() {
     hud.add_child(load_button)
 
     var build_button := Button.new()
-    build_button.text = "CONSTRUIR FUNDAÇÃO"
-    build_button.position = Vector2(830, 650)
-    build_button.custom_minimum_size = Vector2(190, 42)
-    build_button.pressed.connect(_toggle_build_mode)
+    build_button.text = "FUNDAÇÃO"
+    build_button.position = Vector2(760, 650)
+    build_button.custom_minimum_size = Vector2(130, 42)
+    build_button.pressed.connect(_start_build.bind("fundacao"))
     hud.add_child(build_button)
+
+    var wall_button := Button.new()
+    wall_button.text = "PAREDE"
+    wall_button.position = Vector2(895, 650)
+    wall_button.custom_minimum_size = Vector2(110, 42)
+    wall_button.pressed.connect(_start_build.bind("parede"))
+    hud.add_child(wall_button)
+
+    var campfire_button := Button.new()
+    campfire_button.text = "FOGUEIRA"
+    campfire_button.position = Vector2(1010, 650)
+    campfire_button.custom_minimum_size = Vector2(120, 42)
+    campfire_button.pressed.connect(_start_build.bind("fogueira"))
+    hud.add_child(campfire_button)
 
     var inventory_button := Button.new()
     inventory_button.text = "MOCHILA (I)"
@@ -440,7 +454,13 @@ func _on_weather_changed(weather: String) -> void:
 func _toggle_build_mode() -> void:
     if is_instance_valid(build_manager) and build_manager.has_method("toggle_build_mode"):
         build_manager.toggle_build_mode()
-        _show_message("Modo construção: toque/clique no mapa para colocar fundações. ESC cancela.")
+        _show_message("Modo construção. ESC cancela.")
+
+func _start_build(kind: String) -> void:
+    if is_instance_valid(build_manager) and build_manager.has_method("select_building"):
+        build_manager.select_building(kind)
+        var names := {"fundacao": "fundação", "parede": "parede", "fogueira": "fogueira"}
+        _show_message("Construir " + str(names.get(kind, kind)) + ": toque no mapa. ESC cancela.")
 
 func _toggle_inventory() -> void:
     if inventory_panel:
