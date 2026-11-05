@@ -21,6 +21,7 @@ environment/defaults/default_clear_color=Color(0.08, 0.12, 0.10, 1)
 [autoload]
 GameManager="*res://scripts/game_manager.gd"
 StorageManager="*res://scripts/storage_manager.gd"
+WeatherManager="*res://scripts/weather_manager.gd"
 
 [input]
 move_left={"deadzone":0.2,"events":[Object(InputEventKey,"physical_keycode":65)]}
