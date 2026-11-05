@@ -21,8 +21,8 @@ func _on_body_exited(body: Node2D) -> void:
 
 func _unhandled_input(event: InputEvent) -> void:
     if player_in_range and event.is_action_pressed("interact"):
-        var ui := load("res://scenes/storage_ui.tscn").instantiate()
-        ui.chest_id = chest_id
+        var ui: Node = load("res://scenes/storage_ui.tscn").instantiate()
+        ui.set("chest_id", chest_id)
         get_tree().current_scene.add_child(ui)
         get_tree().paused = true
         get_viewport().set_input_as_handled()
