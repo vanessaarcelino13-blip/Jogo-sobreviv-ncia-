@@ -21,6 +21,7 @@ var day: int = 1
 var elapsed: float = 0.0
 var inventory: Array[Dictionary] = []
 var equipped_tool: String = TOOL_STONE
+var equipped_armor: String = ""
 
 func _ready() -> void:
     _reset_inventory()
@@ -40,6 +41,7 @@ func reset_new_game() -> void:
     day = 1
     elapsed = 0.0
     equipped_tool = TOOL_STONE
+    equipped_armor = ""
     _reset_inventory()
     add_item(TOOL_STONE, 1)
     stats_changed.emit()
@@ -127,6 +129,11 @@ func get_item_name(item_id: String) -> String:
         "metal_axe": return "Machado de metal"
         "stone_pickaxe": return "Picareta de pedra"
         "metal_pickaxe": return "Picareta de metal"
+        "fiber": return "Fibra vegetal"
+        "hide": return "Couro"
+        "coat": return "Casaco"
+        "sun_hat": return "Chapéu"
+        "airdrop_chip": return "Componente raro"
         _: return item_id
 
 func get_harvest_amount(resource_type: String, base_amount: int) -> int:
@@ -144,7 +151,47 @@ func get_harvest_amount(resource_type: String, base_amount: int) -> int:
     return base_amount * multiplier
 
 func can_harvest(resource_type: String) -> bool:
-    return resource_type == "wood" or resource_type == "stone"
+    return resource_type in ["wood", "stone", "fiber", "hide"]
+
+func equip_armor(item_id: String) -> bool:
+    if item_id not in ["coat", "sun_hat"] or get_item_count(item_id) < 1:
+        return false
+    equipped_armor = "" if equipped_armor == item_id else item_id
+    stats_changed.emit()
+    return true
+
+func craft_coat() -> bool:
+    if get_item_count("hide") < 5 or get_item_count("fiber") < 3:
+        return false
+    _remove_item("hide", 5)
+    _remove_item("fiber", 3)
+    if not add_item("coat", 1):
+        return false
+    stats_changed.emit()
+    return true
+
+func craft_sun_hat() -> bool:
+    if get_item_count("fiber") < 5 or get_item_count("wood") < 2:
+        return false
+    _remove_item("fiber", 5)
+    _remove_item("wood", 2)
+    if not add_item("sun_hat", 1):
+        return false
+    stats_changed.emit()
+    return true
+
+func apply_climate_damage(biome: String, delta: float) -> void:
+    var damage_per_second := 0.0
+    if biome == "neve" and equipped_armor != "coat":
+        damage_per_second = 1.2
+    elif biome == "deserto" and equipped_armor != "sun_hat":
+        damage_per_second = 0.8
+    if damage_per_second > 0.0:
+        health = maxf(0.0, health - damage_per_second * delta)
+        if health <= 0.0 and not death_reported:
+            death_reported = true
+            player_died.emit()
+        stats_changed.emit()
 
 func craft_stone_pickaxe() -> bool:
     if get_item_count(PICKAXE_STONE) > 0:
@@ -222,7 +269,8 @@ func save_game() -> void:
         "health": health, "hunger": hunger, "thirst": thirst,
         "wood": wood, "stone": stone, "day": day, "elapsed": elapsed,
         "inventory": inventory, "equipped_tool": equipped_tool,
-        "storage": StorageManager.chests_data
+        "storage": StorageManager.chests_data,
+        "equipped_armor": equipped_armor
     }
     var file := FileAccess.open("user://survival_save.json", FileAccess.WRITE)
     if file:
@@ -243,6 +291,7 @@ func load_game() -> bool:
     day = int(parsed.get("day", 1))
     elapsed = float(parsed.get("elapsed", 0.0))
     equipped_tool = str(parsed.get("equipped_tool", TOOL_STONE))
+    equipped_armor = str(parsed.get("equipped_armor", ""))
     StorageManager.chests_data = parsed.get("storage", {}) as Dictionary
     _reset_inventory()
     var saved_inventory = parsed.get("inventory", [])
