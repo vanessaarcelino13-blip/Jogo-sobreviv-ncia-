@@ -1,6 +1,9 @@
 extends Node
 
 signal stats_changed
+signal player_died
+
+var death_reported := false
 
 const INVENTORY_CAPACITY := 20
 const STACK_LIMIT := 20
@@ -30,6 +33,7 @@ func _reset_inventory() -> void:
     stone = 0
 
 func reset_new_game() -> void:
+    death_reported = false
     health = 100.0
     hunger = 100.0
     thirst = 100.0
@@ -92,6 +96,28 @@ func get_inventory_slot(index: int) -> Dictionary:
 
 func get_item_count(item_id: String) -> int:
     return _count_item(item_id)
+
+func remove_item(item_id: String, amount: int) -> bool:
+    var removed := _remove_item(item_id, amount)
+    if removed:
+        stats_changed.emit()
+    return removed
+
+func get_inventory_contents() -> Dictionary:
+    var contents: Dictionary = {}
+    for slot in inventory:
+        var item_id := str(slot.get("id", ""))
+        var count := int(slot.get("count", 0))
+        if item_id != "" and count > 0:
+            contents[item_id] = int(contents.get(item_id, 0)) + count
+    return contents
+
+func clear_inventory() -> Dictionary:
+    var dropped := get_inventory_contents()
+    _reset_inventory()
+    equipped_tool = ""
+    stats_changed.emit()
+    return dropped
 
 func get_item_name(item_id: String) -> String:
     match item_id:
@@ -183,6 +209,9 @@ func consume_survival(delta: float) -> void:
     thirst = maxf(0.0, thirst - delta * 0.34)
     if hunger <= 0.0 or thirst <= 0.0:
         health = maxf(0.0, health - delta * 1.8)
+    if health <= 0.0 and not death_reported:
+        death_reported = true
+        player_died.emit()
     if elapsed >= 180.0:
         elapsed = 0.0
         day += 1
@@ -192,7 +221,8 @@ func save_game() -> void:
     var data := {
         "health": health, "hunger": hunger, "thirst": thirst,
         "wood": wood, "stone": stone, "day": day, "elapsed": elapsed,
-        "inventory": inventory, "equipped_tool": equipped_tool
+        "inventory": inventory, "equipped_tool": equipped_tool,
+        "storage": StorageManager.chests_data
     }
     var file := FileAccess.open("user://survival_save.json", FileAccess.WRITE)
     if file:
@@ -213,6 +243,7 @@ func load_game() -> bool:
     day = int(parsed.get("day", 1))
     elapsed = float(parsed.get("elapsed", 0.0))
     equipped_tool = str(parsed.get("equipped_tool", TOOL_STONE))
+    StorageManager.chests_data = parsed.get("storage", {}) as Dictionary
     _reset_inventory()
     var saved_inventory = parsed.get("inventory", [])
     if saved_inventory is Array and not saved_inventory.is_empty():
@@ -224,6 +255,7 @@ func load_game() -> bool:
         add_item("wood", int(parsed.get("wood", 0)))
         add_item("stone", int(parsed.get("stone", 0)))
     _sync_resource_totals()
+    death_reported = health <= 0.0
     stats_changed.emit()
     return true
 
