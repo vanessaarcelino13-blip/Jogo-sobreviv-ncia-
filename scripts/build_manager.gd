@@ -8,7 +8,7 @@ var preview: Polygon2D
 
 func _ready() -> void:
     for saved_floor in GameManager.built_floors:
-        var restored_floor := FLOOR_SCENE.instantiate()
+        var restored_floor := FLOOR_SCENE.instantiate() as StaticBody2D
         restored_floor.global_position = Vector2(float(saved_floor.get("x", 0.0)), float(saved_floor.get("y", 0.0)))
         get_tree().current_scene.call_deferred("add_child", restored_floor)
     preview = Polygon2D.new()
@@ -61,7 +61,7 @@ func _place_floor(position: Vector2) -> void:
     if not GameManager.remove_item("wood", 2):
         print("[Construção] Você precisa de 2 madeiras.")
         return
-    var floor := FLOOR_SCENE.instantiate()
+    var floor := FLOOR_SCENE.instantiate() as StaticBody2D
     floor.global_position = position
     get_tree().current_scene.add_child(floor)
     GameManager.built_floors.append({"x": position.x, "y": position.y})
