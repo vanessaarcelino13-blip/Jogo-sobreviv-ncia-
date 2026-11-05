@@ -14,13 +14,13 @@ const BUILDABLES := {
 
 var building := false
 var current_item := "fundacao"
-var preview: Polygon2D
+var preview: Node2D
 
 func _ready() -> void:
     _restore_buildings()
-    preview = PREVIEW_SCENE.instantiate() as Polygon2D
+    preview = PREVIEW_SCENE.instantiate() as Node2D
     add_child(preview)
-    preview.configure(Vector2(64, 64), Color(0.35, 0.9, 0.4, 0.48))
+    preview.call("configure", Vector2(64, 64), Color(0.35, 0.9, 0.4, 0.48))
     preview.visible = false
 
 func _restore_buildings() -> void:
@@ -50,7 +50,7 @@ func select_building(kind: String) -> void:
     building = true
     preview.visible = true
     var size: Vector2 = BUILDABLES[kind]["size"]
-    preview.configure(size, Color(0.35, 0.9, 0.4, 0.48))
+    preview.call("configure", size, Color(0.35, 0.9, 0.4, 0.48))
     print("[Construção] Selecionado: ", kind)
 
 func toggle_build_mode() -> void:
@@ -69,7 +69,7 @@ func _process(_delta: float) -> void:
         return
     var target := _snapped_position(get_global_mouse_position())
     preview.global_position = target
-    preview.set_valid(_can_place(current_item, target))
+    preview.call("set_valid", _can_place(current_item, target))
 
 func _unhandled_input(event: InputEvent) -> void:
     if not building:
