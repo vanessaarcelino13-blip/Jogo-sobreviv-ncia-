@@ -306,12 +306,24 @@ func _create_inventory_panel(hud: CanvasLayer) -> void:
 
     inventory_status = _make_label("Ferramenta equipada: Machado de pedra", 14)
     content.add_child(inventory_status)
+    var craft_pickaxe_button := Button.new()
+    craft_pickaxe_button.text = "PICARETA DE PEDRA  •  3 MADEIRAS + 2 PEDRAS"
+    craft_pickaxe_button.custom_minimum_size = Vector2(0, 38)
+    craft_pickaxe_button.pressed.connect(_craft_stone_pickaxe)
+    content.add_child(craft_pickaxe_button)
+
     var craft_button := Button.new()
-    craft_button.text = "FABRICAR MACHADO DE METAL  •  5 MADEIRAS + 8 PEDRAS"
-    craft_button.custom_minimum_size = Vector2(0, 42)
+    craft_button.text = "MACHADO DE METAL  •  5 MADEIRAS + 8 PEDRAS"
+    craft_button.custom_minimum_size = Vector2(0, 38)
     craft_button.pressed.connect(_craft_metal_axe)
     content.add_child(craft_button)
-    content.add_child(_make_label("Cada machado de metal coleta 5 madeiras por árvore.", 12, Color("#c69a61")))
+
+    var craft_metal_pickaxe_button := Button.new()
+    craft_metal_pickaxe_button.text = "PICARETA DE METAL  •  PICARETA + 5 MADEIRAS + 8 PEDRAS"
+    craft_metal_pickaxe_button.custom_minimum_size = Vector2(0, 38)
+    craft_metal_pickaxe_button.pressed.connect(_craft_metal_pickaxe)
+    content.add_child(craft_metal_pickaxe_button)
+    content.add_child(_make_label("Ferramentas melhores aumentam a quantidade coletada.", 12, Color("#c69a61")))
 
 func _toggle_inventory() -> void:
     if inventory_panel:
@@ -332,11 +344,27 @@ func _refresh_inventory_ui() -> void:
     if inventory_status:
         inventory_status.text = "Ferramenta equipada: %s" % GameManager.get_item_name(GameManager.equipped_tool)
 
+func _craft_stone_pickaxe() -> void:
+    if GameManager.craft_stone_pickaxe():
+        _show_message("Picareta de pedra fabricada e equipada!")
+    else:
+        _show_message("Precisa de 3 madeiras e 2 pedras.")
+    _refresh_inventory_ui()
+    _refresh_hud()
+
 func _craft_metal_axe() -> void:
     if GameManager.craft_metal_axe():
         _show_message("Machado de metal fabricado e equipado!")
     else:
-        _show_message("Precisa de 5 madeiras e 8 pedras, e espaço na mochila.")
+        _show_message("Precisa de 5 madeiras e 8 pedras.")
+    _refresh_inventory_ui()
+    _refresh_hud()
+
+func _craft_metal_pickaxe() -> void:
+    if GameManager.craft_metal_pickaxe():
+        _show_message("Picareta de metal fabricada e equipada!")
+    else:
+        _show_message("Precisa de picareta de pedra, 5 madeiras e 8 pedras.")
     _refresh_inventory_ui()
     _refresh_hud()
 
