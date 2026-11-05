@@ -16,6 +16,7 @@ var time_label: Label
 var biome_label: Label
 var weather_overlay: ColorRect
 var airdrop_timer: Timer
+var build_manager: Node2D
 var current_biome := "floresta"
 var day_night_overlay: ColorRect
 var damage_flash: ColorRect
@@ -36,6 +37,12 @@ func _ready() -> void:
         GameManager.reset_new_game()
     _create_world()
     _create_player()
+    build_manager = Node2D.new()
+    build_manager.set_script(load("res://scripts/build_manager.gd"))
+    add_child(build_manager)
+    var weather_layer := CanvasLayer.new()
+    weather_layer.set_script(load("res://scripts/weather_overlay.gd"))
+    add_child(weather_layer)
     _create_hud()
     _spawn_resources()
     _spawn_animals()
@@ -296,6 +303,13 @@ void fragment() {
     load_button.pressed.connect(_load_game)
     hud.add_child(load_button)
 
+    var build_button := Button.new()
+    build_button.text = "CONSTRUIR FUNDAÇÃO"
+    build_button.position = Vector2(830, 650)
+    build_button.custom_minimum_size = Vector2(190, 42)
+    build_button.pressed.connect(_toggle_build_mode)
+    hud.add_child(build_button)
+
     var inventory_button := Button.new()
     inventory_button.text = "MOCHILA (I)"
     inventory_button.position = Vector2(1050,575)
@@ -387,6 +401,11 @@ func _create_inventory_panel(hud: CanvasLayer) -> void:
     equip_hat_button.pressed.connect(_equip_armor.bind("sun_hat"))
     content.add_child(equip_hat_button)
     content.add_child(_make_label("Machados/picaretas melhoram a coleta. Casaco protege na neve; chapéu protege no deserto.", 11, Color("#c69a61")))
+
+func _toggle_build_mode() -> void:
+    if is_instance_valid(build_manager) and build_manager.has_method("toggle_build_mode"):
+        build_manager.toggle_build_mode()
+        _show_message("Modo construção: toque/clique no mapa para colocar fundações. ESC cancela.")
 
 func _toggle_inventory() -> void:
     if inventory_panel:
