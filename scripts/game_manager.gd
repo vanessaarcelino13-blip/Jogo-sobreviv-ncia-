@@ -61,3 +61,11 @@ func load_game() -> bool:
     elapsed = float(parsed.get("elapsed", 0.0))
     stats_changed.emit()
     return true
+
+# Pequena pausa visual para destacar a ativação de uma habilidade.
+func hit_stop(duration: float = 0.04) -> void:
+    if Engine.time_scale == 0.0:
+        return
+    Engine.time_scale = 0.0
+    await get_tree().create_timer(duration, true, false, true).timeout
+    Engine.time_scale = 1.0
