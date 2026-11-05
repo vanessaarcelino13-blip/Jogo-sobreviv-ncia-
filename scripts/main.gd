@@ -48,6 +48,7 @@ func _ready() -> void:
     _spawn_animals()
     GameManager.stats_changed.connect(_refresh_hud)
     GameManager.player_died.connect(_on_player_death)
+    WeatherManager.weather_changed.connect(_on_weather_changed)
     airdrop_timer = Timer.new()
     airdrop_timer.wait_time = 180.0
     airdrop_timer.one_shot = false
@@ -401,6 +402,15 @@ func _create_inventory_panel(hud: CanvasLayer) -> void:
     equip_hat_button.pressed.connect(_equip_armor.bind("sun_hat"))
     content.add_child(equip_hat_button)
     content.add_child(_make_label("Machados/picaretas melhoram a coleta. Casaco protege na neve; chapéu protege no deserto.", 11, Color("#c69a61")))
+
+func _on_weather_changed(weather: String) -> void:
+    var messages := {
+        "limpo": "O céu abriu. O clima está tranquilo.",
+        "chuva": "Começou a chover. Seus movimentos estão um pouco mais lentos.",
+        "tempestade": "TEMPestade! Visibilidade reduzida e animais detectam você de mais perto.",
+        "nevoa": "Uma névoa densa cobre a região. Cuidado ao explorar."
+    }
+    _show_message(str(messages.get(weather, "O clima mudou.")))
 
 func _toggle_build_mode() -> void:
     if is_instance_valid(build_manager) and build_manager.has_method("toggle_build_mode"):
