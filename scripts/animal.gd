@@ -38,10 +38,10 @@ func scare_away(from_position: Vector2) -> void:
 
 func _draw() -> void:
     draw_circle(Vector2(0, 5), 15, Color(0, 0, 0, 0.2))
-    draw_ellipse(Vector2.ZERO, Vector2(12, 8), Color("9a704b"))
+    draw_colored_polygon(PackedVector2Array([Vector2(-12,0), Vector2(-9,-6), Vector2(0,-8), Vector2(9,-6), Vector2(12,0), Vector2(9,6), Vector2(0,8), Vector2(-9,6)]), Color("9a704b"))
     draw_circle(Vector2(0, -7), 8, Color("b8895d"))
-    draw_triangle(PackedVector2Array([Vector2(-7,-12), Vector2(-9,-20), Vector2(-2,-14)]), Color("80583e"))
-    draw_triangle(PackedVector2Array([Vector2(7,-12), Vector2(9,-20), Vector2(2,-14)]), Color("80583e"))
+    draw_colored_polygon(PackedVector2Array([Vector2(-7,-12), Vector2(-9,-20), Vector2(-2,-14)]), Color("80583e"))
+    draw_colored_polygon(PackedVector2Array([Vector2(7,-12), Vector2(9,-20), Vector2(2,-14)]), Color("80583e"))
     draw_circle(Vector2(-3, -8), 1.2, Color("211b18"))
     draw_circle(Vector2(3, -8), 1.2, Color("211b18"))
     draw_circle(Vector2(0, -4), 1.8, Color("30221d"))
