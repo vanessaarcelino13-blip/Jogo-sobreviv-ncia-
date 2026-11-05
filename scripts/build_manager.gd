@@ -10,7 +10,7 @@ func _ready() -> void:
     for saved_floor in GameManager.built_floors:
         var restored_floor := FLOOR_SCENE.instantiate()
         restored_floor.global_position = Vector2(float(saved_floor.get("x", 0.0)), float(saved_floor.get("y", 0.0)))
-        get_tree().current_scene.add_child.call_deferred(restored_floor)
+        get_tree().current_scene.call_deferred("add_child", restored_floor)
     preview = Polygon2D.new()
     preview.polygon = PackedVector2Array([
         Vector2(-30, -30), Vector2(30, -30),
