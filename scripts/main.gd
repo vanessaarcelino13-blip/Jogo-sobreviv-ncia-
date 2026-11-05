@@ -3,6 +3,7 @@ extends Node2D
 const PLAYER_SCENE := preload("res://scenes/player.tscn")
 const RESOURCE_SCENE := preload("res://scenes/resource_node.tscn")
 const ANIMAL_SCRIPT := preload("res://scripts/animal.gd")
+const AIRDROP_SCENE := preload("res://scenes/airdrop.tscn")
 
 var player: CharacterBody2D
 var health_bar: ProgressBar
@@ -12,6 +13,10 @@ var status_label: Label
 var resource_label: Label
 var message_label: Label
 var time_label: Label
+var biome_label: Label
+var weather_overlay: ColorRect
+var airdrop_timer: Timer
+var current_biome := "floresta"
 var day_night_overlay: ColorRect
 var damage_flash: ColorRect
 var vignette_material: ShaderMaterial
@@ -35,6 +40,13 @@ func _ready() -> void:
     _spawn_resources()
     _spawn_animals()
     GameManager.stats_changed.connect(_refresh_hud)
+    GameManager.player_died.connect(_on_player_death)
+    airdrop_timer = Timer.new()
+    airdrop_timer.wait_time = 180.0
+    airdrop_timer.one_shot = false
+    airdrop_timer.timeout.connect(_spawn_airdrop)
+    add_child(airdrop_timer)
+    airdrop_timer.start()
     _refresh_hud()
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -43,6 +55,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _process(delta: float) -> void:
     GameManager.consume_survival(delta)
+    _update_weather(delta)
     message_timer = maxf(0.0, message_timer - delta)
     if message_timer <= 0.0 and message_label:
         message_label.text = ""
@@ -103,6 +116,18 @@ func _spawn_resources() -> void:
         rock.amount = randi_range(1, 2)
         rock.position = Vector2(randf_range(-950, 950), randf_range(-700, 700))
         add_child(rock)
+    for i in range(14):
+        var fiber = RESOURCE_SCENE.instantiate()
+        fiber.resource_type = "fiber"
+        fiber.amount = randi_range(1, 2)
+        fiber.position = Vector2(randf_range(-1100, 1100), randf_range(-850, 850))
+        add_child(fiber)
+    for i in range(8):
+        var hide_node = RESOURCE_SCENE.instantiate()
+        hide_node.resource_type = "hide"
+        hide_node.amount = 1
+        hide_node.position = Vector2(randf_range(-1000, 1000), randf_range(-800, 800))
+        add_child(hide_node)
 
 func _spawn_animals() -> void:
     for i in range(9):
@@ -184,6 +209,12 @@ void fragment() {
     day_night_overlay.color = Color(0.04, 0.07, 0.16, 0.0)
     hud.add_child(day_night_overlay)
 
+    weather_overlay = ColorRect.new()
+    weather_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+    weather_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+    weather_overlay.color = Color(0.45, 0.72, 0.95, 0.0)
+    hud.add_child(weather_overlay)
+
     damage_flash = ColorRect.new()
     damage_flash.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
     damage_flash.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -201,6 +232,10 @@ void fragment() {
     time_label = _make_label("DIA 01  •  DIA", 18)
     time_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
     phase_panel.add_child(time_label)
+    var biome_panel := _make_panel(hud, Vector2(770,18), Vector2(220,48))
+    biome_label = _make_label("BIOMA: FLORESTA", 15, Color("#c6d69a"))
+    biome_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+    biome_panel.add_child(biome_label)
 
     var survival_panel := _make_panel(hud, Vector2(18,520), Vector2(290,174))
     var survival_box := VBoxContainer.new()
@@ -272,8 +307,8 @@ void fragment() {
 
 func _create_inventory_panel(hud: CanvasLayer) -> void:
     inventory_panel = PanelContainer.new()
-    inventory_panel.position = Vector2(365, 90)
-    inventory_panel.custom_minimum_size = Vector2(550, 540)
+    inventory_panel.position = Vector2(350, 35)
+    inventory_panel.custom_minimum_size = Vector2(580, 650)
     inventory_panel.visible = false
     var style := StyleBoxFlat.new()
     style.bg_color = Color("#17130f")
@@ -331,7 +366,27 @@ func _create_inventory_panel(hud: CanvasLayer) -> void:
     craft_metal_pickaxe_button.custom_minimum_size = Vector2(0, 38)
     craft_metal_pickaxe_button.pressed.connect(_craft_metal_pickaxe)
     content.add_child(craft_metal_pickaxe_button)
-    content.add_child(_make_label("Ferramentas melhores aumentam a quantidade coletada.", 12, Color("#c69a61")))
+    var craft_coat_button := Button.new()
+    craft_coat_button.text = "CASACO  •  5 COUROS + 3 FIBRAS"
+    craft_coat_button.custom_minimum_size = Vector2(0, 36)
+    craft_coat_button.pressed.connect(_craft_coat)
+    content.add_child(craft_coat_button)
+    var craft_hat_button := Button.new()
+    craft_hat_button.text = "CHAPÉU  •  5 FIBRAS + 2 MADEIRAS"
+    craft_hat_button.custom_minimum_size = Vector2(0, 36)
+    craft_hat_button.pressed.connect(_craft_sun_hat)
+    content.add_child(craft_hat_button)
+    var equip_coat_button := Button.new()
+    equip_coat_button.text = "EQUIPAR / TIRAR CASACO"
+    equip_coat_button.custom_minimum_size = Vector2(0, 34)
+    equip_coat_button.pressed.connect(_equip_armor.bind("coat"))
+    content.add_child(equip_coat_button)
+    var equip_hat_button := Button.new()
+    equip_hat_button.text = "EQUIPAR / TIRAR CHAPÉU"
+    equip_hat_button.custom_minimum_size = Vector2(0, 34)
+    equip_hat_button.pressed.connect(_equip_armor.bind("sun_hat"))
+    content.add_child(equip_hat_button)
+    content.add_child(_make_label("Machados/picaretas melhoram a coleta. Casaco protege na neve; chapéu protege no deserto.", 11, Color("#c69a61")))
 
 func _toggle_inventory() -> void:
     if inventory_panel:
@@ -350,7 +405,12 @@ func _refresh_inventory_ui() -> void:
             var item_id := str(slot_data.get("id", ""))
             inventory_slots[i].text = "%s\n×%d" % [GameManager.get_item_name(item_id), int(slot_data.get("count", 0))]
     if inventory_status:
-        inventory_status.text = "Ferramenta equipada: %s" % GameManager.get_item_name(GameManager.equipped_tool)
+        var armor_name := "Nenhuma"
+        if GameManager.equipped_armor == "coat":
+            armor_name = "Casaco"
+        elif GameManager.equipped_armor == "sun_hat":
+            armor_name = "Chapéu"
+        inventory_status.text = "Ferramenta: %s  •  Proteção: %s" % [GameManager.get_item_name(GameManager.equipped_tool), armor_name]
 
 func _craft_stone_pickaxe() -> void:
     if GameManager.craft_stone_pickaxe():
@@ -374,6 +434,93 @@ func _craft_metal_pickaxe() -> void:
     else:
         _show_message("Precisa de picareta de pedra, 5 madeiras e 8 pedras.")
     _refresh_inventory_ui()
+    _refresh_hud()
+
+func _craft_coat() -> void:
+    if GameManager.craft_coat():
+        _show_message("Casaco fabricado! Equipe-o na mochila.")
+    else:
+        _show_message("Precisa de 5 couros e 3 fibras.")
+    _refresh_inventory_ui()
+
+func _craft_sun_hat() -> void:
+    if GameManager.craft_sun_hat():
+        _show_message("Chapéu fabricado! Equipe-o na mochila.")
+    else:
+        _show_message("Precisa de 5 fibras e 2 madeiras.")
+    _refresh_inventory_ui()
+
+func _equip_armor(item_id: String) -> void:
+    if GameManager.equip_armor(item_id):
+        _show_message("Proteção atualizada.")
+    else:
+        _show_message("Fabrique essa roupa primeiro.")
+    _refresh_inventory_ui()
+
+func _get_biome_at(position: Vector2) -> String:
+    if position.y < -700.0:
+        return "neve"
+    if position.x > 850.0:
+        return "deserto"
+    return "floresta"
+
+func _update_weather(delta: float) -> void:
+    if not is_instance_valid(player):
+        return
+    var biome := _get_biome_at(player.global_position)
+    GameManager.apply_climate_damage(biome, delta)
+    if biome != current_biome:
+        current_biome = biome
+        match biome:
+            "neve":
+                _show_message("Região gelada: equipe um casaco para se proteger.")
+            "deserto":
+                _show_message("Região quente: equipe um chapéu para se proteger.")
+            _:
+                _show_message("Você voltou à floresta.")
+    if biome_label:
+        biome_label.text = "BIOMA: " + biome.to_upper()
+    if weather_overlay:
+        if biome == "neve":
+            weather_overlay.color = Color(0.55, 0.78, 1.0, 0.10)
+        elif biome == "deserto":
+            weather_overlay.color = Color(1.0, 0.62, 0.25, 0.08)
+        else:
+            weather_overlay.color = Color(0.2, 0.3, 0.2, 0.0)
+
+func _spawn_airdrop() -> void:
+    if not is_instance_valid(player):
+        return
+    var direction := Vector2.RIGHT.rotated(randf_range(-PI, PI))
+    var position_drop := player.global_position + direction * randf_range(480.0, 700.0)
+    position_drop.x = clampf(position_drop.x, -1500.0, 1500.0)
+    position_drop.y = clampf(position_drop.y, -950.0, 950.0)
+    var drop := AIRDROP_SCENE.instantiate()
+    drop.global_position = position_drop
+    add_child(drop)
+    for i in range(3):
+        var animal := CharacterBody2D.new()
+        animal.set_script(ANIMAL_SCRIPT)
+        var offset := Vector2.RIGHT.rotated(randf_range(-PI, PI)) * randf_range(90.0, 190.0)
+        animal.position = position_drop + offset
+        add_child(animal)
+    _show_message("SUPRIMENTOS DETECTADOS! Um lançamento chegou ao mapa.")
+
+func _on_player_death() -> void:
+    if not is_instance_valid(player):
+        return
+    var corpse_scene = load("res://scenes/player_corpse.tscn")
+    if corpse_scene:
+        var corpse = corpse_scene.instantiate()
+        corpse.saved_items = GameManager.clear_inventory()
+        corpse.global_position = player.global_position
+        add_child(corpse)
+    GameManager.health = 100.0
+    GameManager.hunger = 100.0
+    GameManager.thirst = 100.0
+    GameManager.death_reported = false
+    player.global_position = Vector2.ZERO
+    _show_message("Você voltou à base. Seus itens ficaram no local da queda.")
     _refresh_hud()
 
 func _use_player_pulse() -> void:
