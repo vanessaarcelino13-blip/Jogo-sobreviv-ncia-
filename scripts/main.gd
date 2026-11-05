@@ -2,6 +2,7 @@ extends Node2D
 
 const PLAYER_SCENE := preload("res://scenes/player.tscn")
 const RESOURCE_SCENE := preload("res://scenes/resource_node.tscn")
+const ANIMAL_SCRIPT := preload("res://scripts/animal.gd")
 var player: CharacterBody2D
 var status_label: Label
 var message_label: Label
@@ -15,6 +16,7 @@ func _ready() -> void:
     _create_player()
     _create_hud()
     _spawn_resources()
+    _spawn_animals()
     GameManager.stats_changed.connect(_refresh_hud)
     _refresh_hud()
 
@@ -43,14 +45,10 @@ func _create_world() -> void:
         pebble.position = Vector2(randf_range(-1100, 1100), randf_range(-850, 850))
         pebble.color = Color("496449") if i % 2 == 0 else Color("3c5a43")
         add_child(pebble)
-
-    # Tufos e manchas de grama criam variação visual sem arquivos externos.
-    for i in range(260):
+    for i in range(360):
         var grass := Polygon2D.new()
         var x := randf_range(-2.0, 2.0)
-        grass.polygon = PackedVector2Array([
-            Vector2(-1.5, 2.0), Vector2(x, -3.0), Vector2(2.0, 2.0)
-        ])
+        grass.polygon = PackedVector2Array([Vector2(-1.5, 2.0), Vector2(x, -3.0), Vector2(2.0, 2.0)])
         grass.position = Vector2(randf_range(-1150, 1150), randf_range(-900, 900))
         grass.color = [Color("58734a"), Color("668052"), Color("405f3d")][i % 3]
         grass.z_index = 1
@@ -75,6 +73,13 @@ func _spawn_resources() -> void:
         rock.position = Vector2(randf_range(-950, 950), randf_range(-700, 700))
         add_child(rock)
 
+func _spawn_animals() -> void:
+    for i in range(9):
+        var animal := CharacterBody2D.new()
+        animal.set_script(ANIMAL_SCRIPT)
+        animal.position = Vector2(randf_range(-800, 800), randf_range(-600, 600))
+        add_child(animal)
+
 func _create_hud() -> void:
     var hud := CanvasLayer.new()
     add_child(hud)
@@ -97,7 +102,7 @@ func _create_hud() -> void:
     status_label.add_theme_font_size_override("font_size", 15)
     layout.add_child(status_label)
     var help := Label.new()
-    help.text = "WASD: mover  •  E: coletar recurso"
+    help.text = "WASD: mover  •  E: coletar  •  Q: pulso de defesa"
     help.position = Vector2(20, 660)
     help.add_theme_font_size_override("font_size", 16)
     hud.add_child(help)
@@ -105,11 +110,22 @@ func _create_hud() -> void:
     message_label.position = Vector2(20, 620)
     message_label.add_theme_font_size_override("font_size", 18)
     hud.add_child(message_label)
+    var pulse_button := Button.new()
+    pulse_button.text = "Pulso de defesa"
+    pulse_button.position = Vector2(1040, 22)
+    pulse_button.custom_minimum_size = Vector2(190, 48)
+    pulse_button.pressed.connect(_use_player_pulse)
+    hud.add_child(pulse_button)
     var save_button := Button.new()
     save_button.text = "Salvar"
-    save_button.position = Vector2(1130, 22)
+    save_button.position = Vector2(1130, 82)
     save_button.pressed.connect(_save_game)
     hud.add_child(save_button)
+
+func _use_player_pulse() -> void:
+    if is_instance_valid(player) and player.has_method("use_pulse"):
+        player.use_pulse()
+        _show_message("Pulso ativado: os animais se afastaram!")
 
 func _refresh_hud() -> void:
     if status_label:
