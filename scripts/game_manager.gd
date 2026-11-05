@@ -99,6 +99,8 @@ func get_item_name(item_id: String) -> String:
         "stone": return "Pedra"
         "stone_axe": return "Machado de pedra"
         "metal_axe": return "Machado de metal"
+        "stone_pickaxe": return "Picareta de pedra"
+        "metal_pickaxe": return "Picareta de metal"
         _: return item_id
 
 func get_harvest_amount(resource_type: String, base_amount: int) -> int:
