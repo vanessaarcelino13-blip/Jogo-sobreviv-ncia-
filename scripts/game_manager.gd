@@ -109,6 +109,13 @@ func craft_metal_axe() -> bool:
         return false
     if get_item_count("wood") < 5 or get_item_count("stone") < 8:
         return false
+    var has_empty_slot := false
+    for slot in inventory:
+        if slot.is_empty():
+            has_empty_slot = true
+            break
+    if not has_empty_slot:
+        return false
     _remove_item("wood", 5)
     _remove_item("stone", 8)
     if not add_item(TOOL_METAL, 1):
