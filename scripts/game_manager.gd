@@ -6,6 +6,8 @@ const INVENTORY_CAPACITY := 20
 const STACK_LIMIT := 20
 const TOOL_STONE := "stone_axe"
 const TOOL_METAL := "metal_axe"
+const PICKAXE_STONE := "stone_pickaxe"
+const PICKAXE_METAL := "metal_pickaxe"
 
 var health: float = 100.0
 var hunger: float = 100.0
@@ -100,27 +102,59 @@ func get_item_name(item_id: String) -> String:
         _: return item_id
 
 func get_harvest_amount(resource_type: String, base_amount: int) -> int:
+    var multiplier := 1
     if resource_type == "wood":
-        return 5 if equipped_tool == TOOL_METAL else 1
-    return base_amount
+        if equipped_tool == TOOL_METAL:
+            multiplier = 4
+        elif equipped_tool == TOOL_STONE:
+            multiplier = 2
+    elif resource_type == "stone":
+        if equipped_tool == PICKAXE_METAL:
+            multiplier = 4
+        elif equipped_tool == PICKAXE_STONE:
+            multiplier = 2
+    return base_amount * multiplier
+
+func can_harvest(resource_type: String) -> bool:
+    return resource_type == "wood" or resource_type == "stone"
+
+func craft_stone_pickaxe() -> bool:
+    if get_item_count(PICKAXE_STONE) > 0:
+        return false
+    if get_item_count("wood") < 3 or get_item_count("stone") < 2:
+        return false
+    _remove_item("wood", 3)
+    _remove_item("stone", 2)
+    if not add_item(PICKAXE_STONE, 1):
+        return false
+    equipped_tool = PICKAXE_STONE
+    stats_changed.emit()
+    return true
 
 func craft_metal_axe() -> bool:
     if get_item_count(TOOL_METAL) > 0:
         return false
     if get_item_count("wood") < 5 or get_item_count("stone") < 8:
         return false
-    var has_empty_slot := false
-    for slot in inventory:
-        if slot.is_empty():
-            has_empty_slot = true
-            break
-    if not has_empty_slot:
-        return false
     _remove_item("wood", 5)
     _remove_item("stone", 8)
     if not add_item(TOOL_METAL, 1):
         return false
     equipped_tool = TOOL_METAL
+    stats_changed.emit()
+    return true
+
+func craft_metal_pickaxe() -> bool:
+    if get_item_count(PICKAXE_METAL) > 0:
+        return false
+    if get_item_count(PICKAXE_STONE) < 1 or get_item_count("wood") < 5 or get_item_count("stone") < 8:
+        return false
+    _remove_item(PICKAXE_STONE, 1)
+    _remove_item("wood", 5)
+    _remove_item("stone", 8)
+    if not add_item(PICKAXE_METAL, 1):
+        return false
+    equipped_tool = PICKAXE_METAL
     stats_changed.emit()
     return true
 
