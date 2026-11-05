@@ -407,7 +407,7 @@ func _on_weather_changed(weather: String) -> void:
     var messages := {
         "limpo": "O céu abriu. O clima está tranquilo.",
         "chuva": "Começou a chover. Seus movimentos estão um pouco mais lentos.",
-        "tempestade": "TEMPestade! Visibilidade reduzida e animais detectam você de mais perto.",
+        "tempestade": "Tempestade! Visibilidade reduzida e animais detectam você de mais perto.",
         "nevoa": "Uma névoa densa cobre a região. Cuidado ao explorar."
     }
     _show_message(str(messages.get(weather, "O clima mudou.")))
