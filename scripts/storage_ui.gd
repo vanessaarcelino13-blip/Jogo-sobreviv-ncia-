@@ -103,6 +103,7 @@ func _empty_label(value: String) -> Label:
 
 func _clear_list(list: VBoxContainer) -> void:
     for child in list.get_children():
+        list.remove_child(child)
         child.queue_free()
 
 func _transfer_to_chest(item_id: String, quantity: int) -> void:
