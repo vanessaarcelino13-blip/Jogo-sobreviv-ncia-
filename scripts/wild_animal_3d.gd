@@ -13,6 +13,8 @@ var player: Node3D
 var attack_timer := 0.0
 var wander_timer := 0.0
 var wander_direction := Vector3.ZERO
+var wander_target := Vector3.ZERO
+var last_target_position := Vector3(999999.0, 999999.0, 999999.0)
 var nav_agent: NavigationAgent3D
 
 func _ready() -> void:
@@ -23,6 +25,7 @@ func _ready() -> void:
 	_build_visual()
 	_setup_navigation()
 	wander_timer = randf_range(1.0, 3.0)
+	wander_target = global_position
 
 func _setup_navigation() -> void:
 	nav_agent = NavigationAgent3D.new()
@@ -74,23 +77,21 @@ func _physics_process(delta: float) -> void:
 		if not players.is_empty():
 			player = players[0]
 
-	var destination := global_position
-	var pursuing := false
-	if is_instance_valid(player):
-		var distance := global_position.distance_to(player.global_position)
-		if distance <= detection_radius:
-			pursuing = true
-			destination = player.global_position
-			if distance <= attack_distance and attack_timer <= 0.0:
-				if player.has_method("take_damage"):
-					player.take_damage(attack_damage)
-				attack_timer = attack_cooldown
-	if not pursuing:
+	var destination := wander_target
+	if is_instance_valid(player) and global_position.distance_to(player.global_position) <= detection_radius:
+		destination = player.global_position
+		if global_position.distance_to(player.global_position) <= attack_distance and attack_timer <= 0.0:
+			if player.has_method("take_damage"):
+				player.take_damage(attack_damage)
+			attack_timer = attack_cooldown
+	else:
 		_update_wander_target(delta)
-		destination = global_position + wander_direction * 4.0
+		destination = wander_target
 
-	if nav_agent.is_navigation_finished() or pursuing:
+	if destination.distance_to(last_target_position) > 0.6 or nav_agent.is_navigation_finished():
+		last_target_position = destination
 		nav_agent.target_position = destination
+
 	if NavigationServer3D.map_get_iteration_id(nav_agent.get_navigation_map()) == 0:
 		velocity.x = 0.0
 		velocity.z = 0.0
@@ -102,25 +103,23 @@ func _physics_process(delta: float) -> void:
 	var next_position := nav_agent.get_next_path_position()
 	var direction := global_position.direction_to(next_position)
 	direction.y = 0.0
-	if direction.length() > 0.08:
-		nav_agent.velocity = direction.normalized() * move_speed
-	else:
-		nav_agent.velocity = Vector3.ZERO
+	nav_agent.velocity = direction.normalized() * move_speed if direction.length() > 0.08 else Vector3.ZERO
 	if not is_on_floor():
 		velocity.y -= float(ProjectSettings.get_setting("physics/3d/default_gravity")) * delta
-	move_and_slide()
 	if direction.length() > 0.1:
 		rotation.y = lerp_angle(rotation.y, atan2(direction.x, direction.z), 7.0 * delta)
 
 func _on_velocity_computed(safe_velocity: Vector3) -> void:
 	velocity.x = safe_velocity.x
 	velocity.z = safe_velocity.z
+	move_and_slide()
 
 func _update_wander_target(delta: float) -> void:
 	wander_timer -= delta
 	if wander_timer <= 0.0:
 		wander_timer = randf_range(2.0, 5.0)
 		wander_direction = Vector3(randf_range(-1.0, 1.0), 0.0, randf_range(-1.0, 1.0)).normalized()
+		wander_target = global_position + wander_direction * randf_range(3.0, 6.0)
 
 func take_damage(amount: float) -> void:
 	health = maxf(0.0, health - amount)
