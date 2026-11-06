@@ -40,7 +40,7 @@ func _process(_delta: float) -> void:
 	var origin := camera.project_ray_origin(screen_point)
 	var end := origin + camera.project_ray_normal(screen_point) * 500.0
 	var query := PhysicsRayQueryParameters3D.create(origin, end)
-	query.collision_mask = 3
+	query.collision_mask = 1
 	if is_instance_valid(player):
 		query.exclude = [player.get_rid()]
 	var hit := get_world_3d().direct_space_state.intersect_ray(query)
