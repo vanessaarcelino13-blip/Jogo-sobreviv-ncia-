@@ -92,7 +92,7 @@ func _build_environment() -> void:
 	for i in range(55):
 		var tree := StaticBody3D.new()
 		tree.name = "TreeObstacle_%02d" % i
-		tree.collision_layer = 3
+		tree.collision_layer = 2
 		tree.collision_mask = 1
 		var trunk_node := MeshInstance3D.new()
 		var trunk := CylinderMesh.new()
