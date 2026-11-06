@@ -5,6 +5,8 @@ extends StaticBody3D
 @export var amount_per_harvest: int = 1
 
 func _ready() -> void:
+	collision_layer = 4
+	collision_mask = 0
 	add_to_group("resources_3d")
 	_build_visual()
 
