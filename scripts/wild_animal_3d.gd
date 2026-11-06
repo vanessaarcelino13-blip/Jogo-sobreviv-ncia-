@@ -75,14 +75,14 @@ func _physics_process(delta: float) -> void:
 	if not is_instance_valid(player):
 		var players := get_tree().get_nodes_in_group("player")
 		if not players.is_empty():
-			player = players[0]
+			player = players[0] as Node3D
 
 	var destination := wander_target
 	if is_instance_valid(player) and global_position.distance_to(player.global_position) <= detection_radius:
 		destination = player.global_position
 		if global_position.distance_to(player.global_position) <= attack_distance and attack_timer <= 0.0:
 			if player.has_method("take_damage"):
-				player.take_damage(attack_damage)
+				player.call("take_damage", attack_damage)
 			attack_timer = attack_cooldown
 	else:
 		_update_wander_target(delta)
