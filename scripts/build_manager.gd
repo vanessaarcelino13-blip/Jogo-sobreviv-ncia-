@@ -5,6 +5,8 @@ const WALL_SCENE: PackedScene = preload("res://scenes/wall.tscn")
 const CAMPFIRE_SCENE: PackedScene = preload("res://scenes/campfire.tscn")
 const PREVIEW_SCENE: PackedScene = preload("res://scenes/build_preview.tscn")
 const TILE_SIZE := 64.0
+const BASE_CENTER := Vector2.ZERO
+const BASE_RADIUS := 260.0
 
 const BUILDABLES := {
     "fundacao": {"scene": "floor", "cost": {"wood": 2}, "size": Vector2(64, 64)},
@@ -51,7 +53,6 @@ func select_building(kind: String) -> void:
     preview.visible = true
     var size: Vector2 = BUILDABLES[kind]["size"]
     preview.call("configure", size, Color(0.35, 0.9, 0.4, 0.48))
-    print("[Construção] Selecionado: ", kind)
 
 func toggle_build_mode() -> void:
     if building:
@@ -91,6 +92,9 @@ func _snapped_position(position: Vector2) -> Vector2:
 func _can_place(kind: String, position: Vector2) -> bool:
     if not BUILDABLES.has(kind):
         return false
+    # Toda construção deve permanecer dentro da área segura da base.
+    if position.distance_to(BASE_CENTER) > BASE_RADIUS:
+        return false
     var cost: Dictionary = BUILDABLES[kind]["cost"]
     for item_id in cost:
         if GameManager.get_item_count(str(item_id)) < int(cost[item_id]):
@@ -115,7 +119,7 @@ func _can_place(kind: String, position: Vector2) -> bool:
 
 func _place_selected(position: Vector2) -> void:
     if not _can_place(current_item, position):
-        print("[Construção] Recursos insuficientes ou local inválido. Paredes e fogueiras precisam de fundação.")
+        print("[Construção] Local fora da base, sem fundação, ocupado ou recursos insuficientes.")
         return
     var data: Dictionary = BUILDABLES[current_item]
     for item_id in data["cost"]:
@@ -132,4 +136,3 @@ func _place_selected(position: Vector2) -> void:
     else:
         GameManager.built_objects.append({"kind": current_item, "x": position.x, "y": position.y})
     GameManager.save_game()
-    print("[Construção] Construído: ", current_item)
