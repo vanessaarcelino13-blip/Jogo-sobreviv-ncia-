@@ -2,6 +2,7 @@ extends StaticBody3D
 
 @export_enum("Madeira", "Pedra", "Fibra") var resource_kind: String = "Madeira"
 @export var harvests_left: int = 3
+@export var amount_per_harvest: int = 1
 
 func _ready() -> void:
 	add_to_group("resources_3d")
@@ -36,9 +37,19 @@ func _build_visual() -> void:
 	add_child(collision)
 
 func collect() -> void:
-	if harvests_left <= 0:
+	if harvests_left <= 0 or not has_node("/root/GameManager"):
+		return
+	var item_id := "wood"
+	match resource_kind:
+		"Pedra": item_id = "stone"
+		"Fibra": item_id = "fiber"
+	var amount := amount_per_harvest
+	if resource_kind in ["Madeira", "Pedra"]:
+		amount = GameManager.get_harvest_amount(item_id, amount_per_harvest)
+	if not GameManager.add_resource(item_id, amount):
+		print("Inventário cheio! Libere espaço antes de coletar.")
 		return
 	harvests_left -= 1
-	print("+1 ", resource_kind, " | Coletas restantes: ", harvests_left)
+	print("+", amount, " ", GameManager.get_item_name(item_id), " | Coletas restantes: ", harvests_left)
 	if harvests_left == 0:
 		queue_free()
