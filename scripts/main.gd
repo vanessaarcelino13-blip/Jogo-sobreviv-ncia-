@@ -85,6 +85,7 @@ func _create_world() -> void:
     ground.polygon = PackedVector2Array([Vector2(-1800,-1200), Vector2(1800,-1200), Vector2(1800,1200), Vector2(-1800,1200)])
     ground.color = Color("#354632")
     add_child(ground)
+    _draw_base_zone()
     for i in range(170):
         var dirt := Polygon2D.new()
         var w := randf_range(18.0, 55.0)
@@ -109,6 +110,27 @@ func _create_world() -> void:
         pebble.color = Color("#77715e") if i % 2 == 0 else Color("#555b48")
         pebble.z_index = 3
         add_child(pebble)
+
+
+func _draw_base_zone() -> void:
+    var border := Line2D.new()
+    border.name = "LimiteDaBase"
+    border.width = 3.0
+    border.default_color = Color(0.82, 0.62, 0.32, 0.58)
+    border.z_index = 4
+    var points := PackedVector2Array()
+    for i in range(97):
+        var angle := TAU * float(i) / 96.0
+        points.append(Vector2(cos(angle), sin(angle)) * 260.0)
+    border.points = points
+    add_child(border)
+    var base_label := Label.new()
+    base_label.text = "ÁREA SEGURA DA BASE"
+    base_label.position = Vector2(-100, -285)
+    base_label.add_theme_font_size_override("font_size", 15)
+    base_label.add_theme_color_override("font_color", Color("#e0bd83"))
+    base_label.z_index = 5
+    add_child(base_label)
 
 func _create_player() -> void:
     player = PLAYER_SCENE.instantiate()
