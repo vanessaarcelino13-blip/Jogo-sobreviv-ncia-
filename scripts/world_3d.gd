@@ -4,19 +4,23 @@ const PLAYER_SCRIPT = preload("res://scripts/player_3d.gd")
 const ANIMAL_SCRIPT = preload("res://scripts/wild_animal_3d.gd")
 const RESOURCE_SCRIPT = preload("res://scripts/resource_node_3d.gd")
 const JOYSTICK_SCRIPT = preload("res://scripts/virtual_joystick.gd")
+const BUILD_SCRIPT = preload("res://scripts/build_system_3d.gd")
 
 var player: CharacterBody3D
+var build_manager: Node3D
 var stats_label: Label
 var inventory_label: Label
-var message_label: Label
 var survival_tick := 0.0
+var navigation_region: NavigationRegion3D
 
 func _ready() -> void:
 	randomize()
 	_build_environment()
+	_bake_navigation()
 	_spawn_player()
 	_spawn_resources()
 	_spawn_animals()
+	_spawn_build_manager()
 	_build_hud()
 	if has_node("/root/GameManager"):
 		GameManager.stats_changed.connect(_refresh_hud)
@@ -52,6 +56,20 @@ func _build_environment() -> void:
 	sun.light_energy = 1.2
 	sun.shadow_enabled = true
 	add_child(sun)
+
+	navigation_region = NavigationRegion3D.new()
+	navigation_region.name = "NavigationRegion3D"
+	var nav_mesh := NavigationMesh.new()
+	nav_mesh.agent_radius = 0.45
+	nav_mesh.agent_height = 1.5
+	nav_mesh.cell_size = 0.25
+	nav_mesh.cell_height = 0.2
+	nav_mesh.geometry_parsed_geometry_type = NavigationMesh.PARSED_GEOMETRY_STATIC_COLLIDERS
+	nav_mesh.geometry_source_geometry_mode = NavigationMesh.SOURCE_GEOMETRY_ROOT_NODE_CHILDREN
+	nav_mesh.filter_baking_aabb = AABB(Vector3(-50.0, -2.0, -50.0), Vector3(100.0, 8.0, 100.0))
+	navigation_region.navigation_mesh = nav_mesh
+	add_child(navigation_region)
+
 	var ground := MeshInstance3D.new()
 	var plane := PlaneMesh.new()
 	plane.size = Vector2(100.0, 100.0)
@@ -64,14 +82,18 @@ func _build_environment() -> void:
 	add_child(ground)
 	var ground_body := StaticBody3D.new()
 	var ground_collision := CollisionShape3D.new()
-	var box := BoxShape3D.new()
-	box.size = Vector3(100.0, 0.2, 100.0)
-	ground_collision.shape = box
+	var ground_box := BoxShape3D.new()
+	ground_box.size = Vector3(100.0, 0.2, 100.0)
+	ground_collision.shape = ground_box
 	ground_collision.position.y = -0.1
 	ground_body.add_child(ground_collision)
 	add_child(ground_body)
+
 	for i in range(55):
-		var tree := Node3D.new()
+		var tree := StaticBody3D.new()
+		tree.name = "TreeObstacle_%02d" % i
+		tree.collision_layer = 2
+		tree.collision_mask = 1
 		var trunk_node := MeshInstance3D.new()
 		var trunk := CylinderMesh.new()
 		trunk.top_radius = 0.18
@@ -83,6 +105,13 @@ func _build_environment() -> void:
 		trunk_node.material_override = trunk_material
 		trunk_node.position.y = trunk.height * 0.5
 		tree.add_child(trunk_node)
+		var trunk_collision := CollisionShape3D.new()
+		var trunk_shape := CylinderShape3D.new()
+		trunk_shape.radius = 0.32
+		trunk_shape.height = trunk.height
+		trunk_collision.shape = trunk_shape
+		trunk_collision.position.y = trunk.height * 0.5
+		tree.add_child(trunk_collision)
 		var crown := MeshInstance3D.new()
 		var crown_mesh := SphereMesh.new()
 		crown_mesh.radius = randf_range(0.8, 1.4)
@@ -95,6 +124,11 @@ func _build_environment() -> void:
 		tree.add_child(crown)
 		tree.position = Vector3(randf_range(-45.0, 45.0), 0.0, randf_range(-45.0, 45.0))
 		add_child(tree)
+
+func _bake_navigation() -> void:
+	if navigation_region and navigation_region.navigation_mesh:
+		navigation_region.bake_navigation_mesh()
+		print("Navegação do ambiente preparada.")
 
 func _spawn_player() -> void:
 	player = CharacterBody3D.new()
@@ -142,12 +176,18 @@ func _spawn_animals() -> void:
 		animal.position = Vector3(randf_range(-22.0, 22.0), 0.0, randf_range(-22.0, 22.0))
 		add_child(animal)
 
+func _spawn_build_manager() -> void:
+	build_manager = Node3D.new()
+	build_manager.name = "BuildManager"
+	build_manager.set_script(BUILD_SCRIPT)
+	add_child(build_manager)
+
 func _build_hud() -> void:
 	var layer := CanvasLayer.new()
 	add_child(layer)
 	var panel := PanelContainer.new()
 	panel.position = Vector2(16.0, 14.0)
-	panel.custom_minimum_size = Vector2(330.0, 112.0)
+	panel.custom_minimum_size = Vector2(350.0, 112.0)
 	layer.add_child(panel)
 	var column := VBoxContainer.new()
 	panel.add_child(column)
@@ -159,10 +199,11 @@ func _build_hud() -> void:
 	column.add_child(stats_label)
 	inventory_label = Label.new()
 	column.add_child(inventory_label)
-	message_label = Label.new()
-	message_label.text = "WASD mover • E coletar • Espaço atacar"
-	message_label.position = Vector2(18.0, 138.0)
-	layer.add_child(message_label)
+	var help := Label.new()
+	help.text = "WASD mover • E coletar • Espaço atacar • ESC cancelar"
+	help.position = Vector2(18.0, 138.0)
+	layer.add_child(help)
+
 	var joystick = JOYSTICK_SCRIPT.new()
 	joystick.position = Vector2(24.0, -174.0)
 	joystick.anchor_top = 1.0
@@ -170,34 +211,31 @@ func _build_hud() -> void:
 	joystick.size = Vector2(150.0, 150.0)
 	joystick.vector_changed.connect(player.set_touch_input)
 	layer.add_child(joystick)
-	var collect_button := Button.new()
-	collect_button.text = "COLETAR"
-	collect_button.position = Vector2(-154.0, -104.0)
-	collect_button.anchor_left = 1.0
-	collect_button.anchor_right = 1.0
-	collect_button.anchor_top = 1.0
-	collect_button.anchor_bottom = 1.0
-	collect_button.size = Vector2(128.0, 48.0)
-	collect_button.pressed.connect(player.collect_nearest_resource)
-	layer.add_child(collect_button)
-	var attack_button := Button.new()
-	attack_button.text = "ATACAR"
-	attack_button.position = Vector2(-154.0, -48.0)
-	attack_button.anchor_left = 1.0
-	attack_button.anchor_right = 1.0
-	attack_button.anchor_top = 1.0
-	attack_button.anchor_bottom = 1.0
-	attack_button.size = Vector2(128.0, 48.0)
-	attack_button.pressed.connect(player.attack_nearest_animal)
-	layer.add_child(attack_button)
+
+	_add_action_button(layer, "COLETAR", Vector2(-154.0, -160.0), player.collect_nearest_resource)
+	_add_action_button(layer, "ATACAR", Vector2(-154.0, -106.0), player.attack_nearest_animal)
+	_add_action_button(layer, "PAREDE", Vector2(-154.0, -52.0), func(): build_manager.start_building("wall"))
+	_add_action_button(layer, "BASE", Vector2(-154.0, 2.0), func(): build_manager.start_building("foundation"))
+	_add_action_button(layer, "COLOCAR", Vector2(-294.0, -52.0), build_manager.place_from_player)
+
+func _add_action_button(layer: CanvasLayer, button_text: String, button_position: Vector2, callback: Callable) -> void:
+	var button := Button.new()
+	button.text = button_text
+	button.position = button_position
+	button.anchor_left = 1.0
+	button.anchor_right = 1.0
+	button.anchor_top = 1.0
+	button.anchor_bottom = 1.0
+	button.size = Vector2(126.0, 46.0)
+	button.pressed.connect(callback)
+	layer.add_child(button)
 
 func _refresh_hud() -> void:
 	if not is_instance_valid(stats_label) or not has_node("/root/GameManager"):
 		return
 	stats_label.text = "Vida: %d  Fome: %d  Sede: %d" % [roundi(GameManager.health), roundi(GameManager.hunger), roundi(GameManager.thirst)]
 	var contents := GameManager.get_inventory_contents()
-	var wood := int(contents.get("wood", 0))
-	var stone := int(contents.get("stone", 0))
-	var fiber := int(contents.get("fiber", 0))
-	var hide := int(contents.get("hide", 0))
-	inventory_label.text = "Mochila: Madeira %d | Pedra %d | Fibra %d | Couro %d" % [wood, stone, fiber, hide]
+	inventory_label.text = "Mochila: Madeira %d | Pedra %d | Fibra %d | Couro %d" % [
+		int(contents.get("wood", 0)), int(contents.get("stone", 0)),
+		int(contents.get("fiber", 0)), int(contents.get("hide", 0))
+	]
