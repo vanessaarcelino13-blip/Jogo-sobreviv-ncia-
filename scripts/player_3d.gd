@@ -12,6 +12,8 @@ var touch_input := Vector2.ZERO
 var attack_cooldown := 0.0
 
 func _ready() -> void:
+	collision_layer = 1
+	collision_mask = 3
 	add_to_group("player")
 	_setup_camera()
 	if not InputMap.has_action("attack"):
