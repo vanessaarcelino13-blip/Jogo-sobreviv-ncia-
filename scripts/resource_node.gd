@@ -24,18 +24,30 @@ func _draw() -> void:
         draw_circle(Vector2.ZERO, 8, Color(0.2, 0.22, 0.18, 0.35))
         return
     if resource_type == "wood":
-        draw_circle(Vector2(0, 5), 18, Color("253d2e"))
-        draw_circle(Vector2(-7, -4), 12, Color("477b49"))
-        draw_circle(Vector2(7, -7), 13, Color("5d9255"))
-        draw_rect(Rect2(-3, 4, 6, 17), Color("795239"))
+        # Sombra e tronco alinhado à base para evitar aparência de árvore-caixa.
+        draw_set_transform(Vector2(0, 15), 0.0, Vector2(1.0, 0.45))
+        draw_circle(Vector2.ZERO, 19, Color(0.0, 0.0, 0.0, 0.22))
+        draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+        draw_rect(Rect2(-5, 0, 10, 25), Color("#5b3928"))
+        draw_rect(Rect2(-2, 2, 3, 20), Color("#946344"))
+        draw_circle(Vector2(-10, -13), 15, Color("#315b37"))
+        draw_circle(Vector2(8, -17), 17, Color("#416e3e"))
+        draw_circle(Vector2(0, -29), 16, Color("#527d45"))
+        draw_circle(Vector2(-5, -31), 6, Color("#6b9250"))
+        draw_circle(Vector2(11, -19), 5, Color("#638a4d"))
     elif resource_type == "stone":
-        draw_circle(Vector2.ZERO, 16, Color("737b78"))
-        draw_circle(Vector2(-5, -4), 6, Color("a3aaa4"))
-        draw_circle(Vector2(6, 5), 4, Color("555f5b"))
+        draw_set_transform(Vector2(0, 8), 0.0, Vector2(1.0, 0.5))
+        draw_circle(Vector2.ZERO, 17, Color(0, 0, 0, 0.22))
+        draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+        var rock_points := PackedVector2Array([Vector2(-17, 5), Vector2(-13, -8), Vector2(-4, -17), Vector2(9, -15), Vector2(18, -3), Vector2(14, 10), Vector2(-3, 15)])
+        draw_colored_polygon(rock_points, Color("#68716e"))
+        draw_line(Vector2(-10, -5), Vector2(-3, -13), Color("#a5aaa1"), 3.0)
+        draw_line(Vector2(4, -9), Vector2(11, -3), Color("#89938c"), 2.0)
     elif resource_type == "fiber":
         draw_line(Vector2(-8, 8), Vector2(-2, -10), Color("#b4a56a"), 3.0)
         draw_line(Vector2(0, 9), Vector2(3, -12), Color("#d1bd79"), 3.0)
         draw_line(Vector2(7, 8), Vector2(10, -7), Color("#8e9d55"), 3.0)
+        draw_line(Vector2(-3, 7), Vector2(-12, -3), Color("#9eaa61"), 2.0)
     else:
         draw_circle(Vector2.ZERO, 13, Color("#92704f"))
         draw_circle(Vector2(-4, -3), 5, Color("#b28c65"))
