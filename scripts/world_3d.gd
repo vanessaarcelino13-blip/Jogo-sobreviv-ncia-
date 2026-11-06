@@ -158,13 +158,13 @@ func _spawn_resources() -> void:
 	for i in range(18):
 		var node := StaticBody3D.new()
 		node.set_script(RESOURCE_SCRIPT)
-		node.resource_kind = "Madeira" if i % 3 != 0 else "Fibra"
+		node.set("resource_kind", "Madeira" if i % 3 != 0 else "Fibra")
 		node.position = Vector3(randf_range(-25.0, 25.0), 0.0, randf_range(-25.0, 25.0))
 		add_child(node)
 	for i in range(12):
 		var node := StaticBody3D.new()
 		node.set_script(RESOURCE_SCRIPT)
-		node.resource_kind = "Pedra"
+		node.set("resource_kind", "Pedra")
 		node.position = Vector3(randf_range(-25.0, 25.0), 0.0, randf_range(-25.0, 25.0))
 		add_child(node)
 
@@ -173,7 +173,7 @@ func _spawn_animals() -> void:
 	for i in range(8):
 		var animal := CharacterBody3D.new()
 		animal.set_script(ANIMAL_SCRIPT)
-		animal.animal_kind = kinds[i % kinds.size()]
+		animal.set("animal_kind", kinds[i % kinds.size()])
 		animal.position = Vector3(randf_range(-22.0, 22.0), 0.0, randf_range(-22.0, 22.0))
 		add_child(animal)
 
@@ -210,14 +210,14 @@ func _build_hud() -> void:
 	joystick.anchor_top = 1.0
 	joystick.anchor_bottom = 1.0
 	joystick.size = Vector2(150.0, 150.0)
-	joystick.vector_changed.connect(player.set_touch_input)
+	joystick.vector_changed.connect(Callable(player, "set_touch_input"))
 	layer.add_child(joystick)
 
-	_add_action_button(layer, "COLETAR", Vector2(-154.0, -160.0), player.collect_nearest_resource)
-	_add_action_button(layer, "ATACAR", Vector2(-154.0, -106.0), player.attack_nearest_animal)
-	_add_action_button(layer, "PAREDE", Vector2(-154.0, -52.0), func(): build_manager.start_building("wall"))
-	_add_action_button(layer, "BASE", Vector2(-154.0, 2.0), func(): build_manager.start_building("foundation"))
-	_add_action_button(layer, "COLOCAR", Vector2(-294.0, -52.0), build_manager.place_from_player)
+	_add_action_button(layer, "COLETAR", Vector2(-154.0, -160.0), Callable(player, "collect_nearest_resource"))
+	_add_action_button(layer, "ATACAR", Vector2(-154.0, -106.0), Callable(player, "attack_nearest_animal"))
+	_add_action_button(layer, "PAREDE", Vector2(-154.0, -52.0), Callable(build_manager, "start_building").bind("wall"))
+	_add_action_button(layer, "BASE", Vector2(-154.0, 2.0), Callable(build_manager, "start_building").bind("foundation"))
+	_add_action_button(layer, "COLOCAR", Vector2(-294.0, -52.0), Callable(build_manager, "place_from_player"))
 
 func _add_action_button(layer: CanvasLayer, button_text: String, button_position: Vector2, callback: Callable) -> void:
 	var button := Button.new()
