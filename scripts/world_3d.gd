@@ -16,7 +16,7 @@ var navigation_region: NavigationRegion3D
 func _ready() -> void:
 	randomize()
 	_build_environment()
-	_bake_navigation()
+	await _bake_navigation()
 	_spawn_player()
 	_spawn_resources()
 	_spawn_animals()
@@ -79,7 +79,7 @@ func _build_environment() -> void:
 	ground_material.roughness = 1.0
 	ground.material_override = ground_material
 	ground.position.y = -0.12
-	add_child(ground)
+	navigation_region.add_child(ground)
 	var ground_body := StaticBody3D.new()
 	var ground_collision := CollisionShape3D.new()
 	var ground_box := BoxShape3D.new()
@@ -87,7 +87,7 @@ func _build_environment() -> void:
 	ground_collision.shape = ground_box
 	ground_collision.position.y = -0.1
 	ground_body.add_child(ground_collision)
-	add_child(ground_body)
+	navigation_region.add_child(ground_body)
 
 	for i in range(55):
 		var tree := StaticBody3D.new()
@@ -123,11 +123,12 @@ func _build_environment() -> void:
 		crown.position.y = trunk.height * 1.15
 		tree.add_child(crown)
 		tree.position = Vector3(randf_range(-45.0, 45.0), 0.0, randf_range(-45.0, 45.0))
-		add_child(tree)
+		navigation_region.add_child(tree)
 
 func _bake_navigation() -> void:
 	if navigation_region and navigation_region.navigation_mesh:
-		navigation_region.bake_navigation_mesh()
+		navigation_region.bake_navigation_mesh(true)
+		await navigation_region.bake_finished
 		print("Navegação do ambiente preparada.")
 
 func _spawn_player() -> void:
