@@ -1,24 +1,33 @@
 # Jogo Sobrevivência
 
-Projeto inicial jogável para **Godot 4.2 ou superior**, em 2D e com renderização Compatibility para facilitar a execução em computadores modestos.
+Projeto 2D para **Godot 4.2+**, com renderização Compatibility.
 
 ## Como abrir
-1. Baixe e extraia o ZIP ou clone este repositório.
-2. Abra o Godot 4.2+.
-3. Selecione **Importar (Import)** e escolha a pasta deste projeto (o arquivo `project.godot`).
-4. Abra o projeto e pressione **F5 (Executar Projeto / Run Project)**.
+1. Baixe o ZIP pelo botão **Code (Código) → Download ZIP** no GitHub.
+2. Extraia a pasta.
+3. Abra o Godot 4.2 ou superior.
+4. Selecione **Importar (Import)** e escolha o arquivo `project.godot`.
+5. Pressione **F6/F5 (Executar Cena/Projeto)**.
 
 ## Controles
 - **WASD**: movimentar.
-- **E**: coletar madeira ou pedra quando estiver perto de um recurso.
-- **Salvar**: grava o progresso localmente.
+- **E**: coletar recursos e interagir.
+- **Q**: pulso de proteção que afasta animais.
+- **I**: abrir mochila.
+- **ESC**: cancelar posicionamento de construção.
 
-## Incluído
-- Movimento top-down com CharacterBody2D e câmera.
-- Mapa procedural simples, árvores e pedras coletáveis.
-- Indicadores de vida, fome, sede e recursos.
-- Ciclo de dia/noite simplificado.
-- Salvamento local em JSON.
+## Sistemas presentes
+- Mundo procedural com detalhes de vegetação, pedras e solo.
+- Personagem top-down com lanterna dinâmica via PointLight2D.
+- Inventário em grade com 20 espaços e pilhas limitadas.
+- Coleta de madeira, pedra, fibras e couro.
+- Ferramentas, roupas e receitas de fabricação.
+- Ciclo de dia/noite, estações e clima.
+- Biomas com efeitos de clima.
+- Construção com grade, custos e salvamento.
+- Área de construção limitada à base (raio de 260 unidades a partir do centro).
+- Baús e armazenamento persistente.
+- Sistema de salvamento local em JSON.
 
-## Estado
-Esta é uma **base reconstruída e jogável**, não uma cópia literal dos oito blocos anteriores. Biomas completos, missões, comerciantes, construções, animais, chefes, inventário detalhado, áudio e menus ainda precisam ser implementados. O projeto não foi executado no editor Godot neste ambiente; abra-o no Godot para validar a execução.
+## Validação
+Os arquivos foram atualizados no GitHub. A execução dentro do editor Godot deve ser feita para confirmar compatibilidade visual e funcionamento no dispositivo de destino. Este repositório não inclui APK exportado.
