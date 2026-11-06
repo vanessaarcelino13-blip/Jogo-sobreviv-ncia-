@@ -12,7 +12,7 @@ var preview_valid := false
 var player: Node3D
 
 func _ready() -> void:
-	player = get_tree().get_first_node_in_group("player")
+	player = get_tree().get_first_node_in_group("player") as Node3D
 
 func start_building(kind: String) -> void:
 	if kind not in ["wall", "foundation"]:
@@ -42,7 +42,9 @@ func _process(_delta: float) -> void:
 	var query := PhysicsRayQueryParameters3D.create(origin, end)
 	query.collision_mask = 1
 	if is_instance_valid(player):
-		query.exclude = [player.get_rid()]
+		var player_body := player as CollisionObject3D
+		if player_body:
+			query.exclude = [player_body.get_rid()]
 	var hit := get_world_3d().direct_space_state.intersect_ray(query)
 	if hit.is_empty():
 		preview_valid = false
@@ -83,7 +85,7 @@ func _place() -> void:
 		GameManager.remove_item("stone", stone_cost)
 	var piece := StaticBody3D.new()
 	piece.set_script(PIECE_SCRIPT)
-	piece.piece_type = build_mode
+	piece.set("piece_type", build_mode)
 	piece.global_position = preview.global_position
 	get_tree().current_scene.add_child(piece)
 	GameManager.stats_changed.emit()
@@ -97,7 +99,6 @@ func _overlaps_obstacle(at_position: Vector3) -> bool:
 	params.shape = shape
 	params.transform = Transform3D(Basis.IDENTITY, at_position + Vector3.UP * (1.0 if build_mode == "wall" else 0.15))
 	params.collision_mask = 2
-	params.exclude = [preview.get_rid()]
 	return not get_world_3d().direct_space_state.intersect_shape(params, 8).is_empty()
 
 func cancel_building() -> void:
