@@ -6,13 +6,18 @@ extends CharacterBody3D
 @export var attack_damage: float = 8.0
 @export var attack_distance: float = 1.7
 @export var attack_cooldown: float = 1.6
+@export var max_health: float = 35.0
+
+var health: float = 35.0
 var player: Node3D
 var attack_timer := 0.0
 var wander_timer := 0.0
 var wander_direction := Vector3.ZERO
+var fleeing := false
 
 func _ready() -> void:
 	add_to_group("wildlife_3d")
+	health = max_health
 	_build_visual()
 	wander_timer = randf_range(1.0, 3.0)
 
@@ -50,21 +55,25 @@ func _physics_process(delta: float) -> void:
 	attack_timer = maxf(0.0, attack_timer - delta)
 	if not is_instance_valid(player):
 		var players := get_tree().get_nodes_in_group("player")
-		if players.size() > 0:
+		if not players.is_empty():
 			player = players[0]
 	var direction := Vector3.ZERO
-	if is_instance_valid(player) and global_position.distance_to(player.global_position) <= detection_radius:
-		direction = global_position.direction_to(player.global_position)
-		if global_position.distance_to(player.global_position) <= attack_distance and attack_timer <= 0.0:
-			if player.has_method("take_damage"):
-				player.take_damage(attack_damage)
-			attack_timer = attack_cooldown
+	if is_instance_valid(player):
+		var distance := global_position.distance_to(player.global_position)
+		if distance <= detection_radius:
+			direction = global_position.direction_to(player.global_position)
+			if distance <= attack_distance and attack_timer <= 0.0:
+				if player.has_method("take_damage"):
+					player.take_damage(attack_damage)
+				attack_timer = attack_cooldown
+		else:
+			_wander(delta)
+			direction = wander_direction
 	else:
-		wander_timer -= delta
-		if wander_timer <= 0.0:
-			wander_timer = randf_range(1.5, 4.0)
-			wander_direction = Vector3(randf_range(-1.0, 1.0), 0.0, randf_range(-1.0, 1.0)).normalized()
+		_wander(delta)
 		direction = wander_direction
+	if fleeing and is_instance_valid(player):
+		direction = (global_position - player.global_position).normalized()
 	if direction.length() > 0.05:
 		velocity.x = direction.x * move_speed
 		velocity.z = direction.z * move_speed
@@ -75,3 +84,17 @@ func _physics_process(delta: float) -> void:
 	if not is_on_floor():
 		velocity.y -= 18.0 * delta
 	move_and_slide()
+
+func _wander(delta: float) -> void:
+	wander_timer -= delta
+	if wander_timer <= 0.0:
+		wander_timer = randf_range(1.5, 4.0)
+		wander_direction = Vector3(randf_range(-1.0, 1.0), 0.0, randf_range(-1.0, 1.0)).normalized()
+
+func take_damage(amount: float) -> void:
+	health = maxf(0.0, health - amount)
+	fleeing = health > 0.0
+	if health <= 0.0:
+		if has_node("/root/GameManager"):
+			GameManager.add_item("hide", 2 if animal_kind == "Urso" else 1)
+		queue_free()
