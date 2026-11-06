@@ -76,14 +76,15 @@ func collect_nearest_resource() -> void:
 	var closest: Node3D
 	var closest_distance := interaction_distance
 	for resource in get_tree().get_nodes_in_group("resources_3d"):
-		if not is_instance_valid(resource):
+		var resource_node := resource as Node3D
+		if not is_instance_valid(resource_node):
 			continue
-		var distance := global_position.distance_to(resource.global_position)
+		var distance := global_position.distance_to(resource_node.global_position)
 		if distance < closest_distance:
 			closest_distance = distance
-			closest = resource
-	if closest and closest.has_method("collect"):
-		closest.collect()
+			closest = resource_node
+	if is_instance_valid(closest) and closest.has_method("collect"):
+		closest.call("collect")
 
 func attack_nearest_animal() -> void:
 	if attack_cooldown > 0.0:
@@ -91,14 +92,15 @@ func attack_nearest_animal() -> void:
 	var closest: Node3D
 	var closest_distance := attack_distance
 	for animal in get_tree().get_nodes_in_group("wildlife_3d"):
-		if not is_instance_valid(animal):
+		var animal_node := animal as Node3D
+		if not is_instance_valid(animal_node):
 			continue
-		var distance := global_position.distance_to(animal.global_position)
+		var distance := global_position.distance_to(animal_node.global_position)
 		if distance < closest_distance:
 			closest_distance = distance
-			closest = animal
-	if closest and closest.has_method("take_damage"):
-		closest.take_damage(attack_damage)
+			closest = animal_node
+	if is_instance_valid(closest) and closest.has_method("take_damage"):
+		closest.call("take_damage", attack_damage)
 		attack_cooldown = 0.65
 
 func take_damage(amount: float) -> void:
