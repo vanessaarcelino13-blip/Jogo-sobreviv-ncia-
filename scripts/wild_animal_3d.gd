@@ -16,6 +16,8 @@ var wander_direction := Vector3.ZERO
 var nav_agent: NavigationAgent3D
 
 func _ready() -> void:
+	collision_layer = 4
+	collision_mask = 3
 	add_to_group("wildlife_3d")
 	health = max_health
 	_build_visual()
