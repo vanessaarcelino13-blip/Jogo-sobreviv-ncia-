@@ -20,7 +20,7 @@ A cena principal continua sendo `res://scenes/main.tscn`. Ela mantém inventári
 - **ESC**: cancelar posicionamento de construção.
 
 ## Protótipo 3D de sobrevivência selvagem
-Na branch `feature/mundo-3d-selvagem` foi adicionada uma cena experimental independente: `res://scenes/wilderness_3d.tscn`.
+Na branch `feature/mundo-3d-selvagem` existe uma cena experimental independente: `res://scenes/wilderness_3d.tscn`.
 
 Para testar:
 1. Abra o projeto no Godot.
@@ -30,15 +30,21 @@ Para testar:
 ### Controles 3D
 - **WASD**: movimentar o sobrevivente em relação à câmera.
 - **E**: coletar recursos próximos.
+- **Espaço**: atacar o animal mais próximo.
+- **Celular**: joystick virtual no canto inferior esquerdo; botões **COLETAR** e **ATACAR** no canto inferior direito.
 
-### O que já existe no protótipo 3D
-- Cenário 3D de floresta com iluminação e câmera isométrica ortográfica.
-- Personagem 3D com movimentação e colisão.
-- Animais selvagens de teste: lobo, urso e javali, com patrulha simples, perseguição e ataque por proximidade.
-- Recursos 3D de madeira, pedra e fibra com coleta por proximidade.
+### Sistemas já ligados no protótipo 3D
+- Floresta 3D com iluminação, câmera isométrica e colisão do solo.
+- Personagem 3D com movimentação, colisão e vida ligada ao GameManager.
+- HUD com vida, fome, sede e resumo dos itens da mochila.
+- Consumo gradual de fome e sede usando o sistema de sobrevivência existente.
+- Coleta de madeira, pedra e fibra integrada ao inventário global de 20 espaços.
+- Quantidade de madeira/pedra respeita a ferramenta equipada no GameManager.
+- Animais selvagens: lobo, urso e javali, com patrulha, perseguição, ataque, vida e recompensa de couro.
+- Combate básico por proximidade e controles de toque para celular.
 
 ### Limites desta etapa
-Esta é uma base experimental jogável, não uma conversão completa do jogo 2D. Os modelos são formas provisórias; ainda faltam navegação dos animais com NavigationRegion3D/NavigationAgent3D, animações, combate completo, inventário integrado ao 3D, construção 3D, controles táteis e testes no dispositivo. A cena principal 2D foi mantida para não perder os sistemas existentes.
+Esta ainda é uma base experimental, não uma conversão completa do jogo 2D. Os modelos são formas provisórias; ainda faltam navegação com obstáculos por NavigationRegion3D/NavigationAgent3D, animações, construção 3D, painel visual completo da mochila, balanceamento e testes no dispositivo de destino. A cena principal 2D foi mantida para preservar os sistemas já existentes.
 
 ## Sistemas 2D já presentes
 - Mundo procedural com vegetação, pedras e solo.
@@ -51,4 +57,4 @@ Esta é uma base experimental jogável, não uma conversão completa do jogo 2D.
 - Salvamento local em JSON.
 
 ## Validação
-A cena 3D foi adicionada ao repositório, mas precisa ser executada no editor Godot 4.2+ para validar a renderização e o comportamento no dispositivo de destino. Esta branch não inclui APK exportado.
+As alterações foram gravadas no GitHub, mas não foram executadas no editor Godot nesta sessão. É necessário abrir a cena 3D no Godot 4.2+ e testar no computador/celular antes de considerar esta versão validada. Esta branch não inclui APK exportado.
